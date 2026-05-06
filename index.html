@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Al Laith · Meeting Framework</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #0C172C; color: #E8EDF2; height: 100vh; overflow: hidden; display: flex; }
+  button { font-family: Arial, sans-serif; }
+  input  { font-family: Arial, sans-serif; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: #183057; }
+  ::-webkit-scrollbar-thumb { background: #0071B7; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div id="sidebar" style="width:195px;min-width:195px;background:#183057;border-right:1px solid #253048;display:flex;flex-direction:column;overflow-y:auto;height:100vh;"></div>
+<div id="main" style="flex:1;overflow:auto;padding:28px 32px;height:100vh;"></div>
+
+<script>
+const C = {
+  bg:'#0C172C', sidebar:'#183057', card:'#1A3560', cardHover:'#1F3D6E',
+  border:'#253048', muted:'#39537F', subText:'#A0A5B2', text:'#D4DDE8', white:'#FFFFFF',
+  primary:'#0071B7', light:'#329FCD', lightest:'#63CFEE', dark:'#183057', darkest:'#000E25',
+  exco:'#0071B7', management:'#329FCD', departmental:'#63CFEE',
+  board:'#A0C4E8', project:'#39537F', oneonone:'#72BFDF',
+  green:'#2E8B57', amber:'#E8A020', red:'#C0392B',
+};
+
+const TABS = [
+  {id:'framework',    label:'Framework',        icon:'◈', color:C.primary},
+  {id:'board',        label:'Board',            icon:'◆', color:C.board},
+  {id:'exco',         label:'EXCO',             icon:'▣', color:C.exco},
+  {id:'management',   label:'Mgmt & Ops',       icon:'⚙', color:C.management},
+  {id:'kpiresults',   label:'KPI Results',      icon:'◎', color:C.management},
+  {id:'project',      label:'Project Steering', icon:'◬', color:C.lightest},
+  {id:'departmental', label:'Departmental',     icon:'◧', color:C.departmental},
+  {id:'oneonone',     label:'1-on-1s',          icon:'◉', color:C.oneonone},
+];
+
+const META = {
+  exco:         {color:C.exco,        freq:'Monthly',            dur:'90–120 min', att:'C-Suite / Directors',       title:'Executive Committee (EXCO)'},
+  management:   {color:C.management,  freq:'Weekly / Bi-weekly', dur:'60 min',     att:'Senior Managers',           title:'Management & Operations'},
+  departmental: {color:C.departmental,freq:'Weekly',             dur:'45–60 min',  att:'Department Head + Team',    title:'Departmental / Team Meeting'},
+  board:        {color:C.board,       freq:'Quarterly',          dur:'2–3 hours',  att:'Board Members + CEO · Google Meet',  title:'Board Meeting'},
+  project:      {color:C.lightest,    freq:'Monthly (as req.)',  dur:'60 min',     att:'Project Owners + Sponsors', title:'Project Steering Committee'},
+  oneonone:     {color:C.oneonone,    freq:'Weekly / Bi-weekly', dur:'30–45 min',  att:'Manager + Direct Report',   title:'1-on-1 Meetings'},
+};
+
+const AGENDAS = {
+  exco:[
+    {title:'Opening & Quorum',         time:'5 min',  items:['Confirm attendees & apologies','Approve previous minutes']},
+    {title:'Previous Action Items',    time:'10 min', items:['Review outstanding actions — Done / In Progress / Escalate']},
+    {title:'Financial Performance',    time:'20 min', items:['Revenue vs budget','<a href="https://your-sharepoint-or-drive-link-here" target="_blank" style="color:#329FCD;text-decoration:none;font-weight:bold;">↗ Open Management Pack</a> &nbsp;·&nbsp; YTD 11 months · Mar 2026 vs Mar 2025','Cash flow & key ratios','Flag decision-required variances']},
+    {title:'Strategic OKR Review',     time:'20 min', items:['RAG status on 3–5 strategic priorities','Progress against quarterly targets']},
+    {title:'Risks & Issues',           time:'15 min', items:['Top risks escalated from operations','Decisions required at EXCO level']},
+    {title:'Divisional Updates',       time:'15 min', items:['Exceptions-only highlights (2–3 min per exec)','Full reports submitted as pre-reads 48 hrs prior']},
+    {title:'Decisions & New Business', time:'15 min', items:['EXCO-level approvals only','New items submitted in advance — no walk-ins']},
+    {title:'People & Culture',         time:'10 min', items:['Key hires, departures, succession','Culture pulse check']},
+    {title:'Close & Actions',          time:'5 min',  items:['Confirm actions, owners, due dates','Confirm next meeting date']},
+  ],
+  management:[
+    {title:'KPI Dashboard Review',     time:'15 min', items:['Departmental KPIs (max 5 per dept)','Flag red metrics for discussion']},
+    {title:'Previous Action Items',    time:'5 min',  items:['Status sweep of all open actions']},
+    {title:'Operational Updates',      time:'20 min', items:['Wins and blockers per department — exceptions only','No full reports in the meeting room']},
+    {title:'Resource & Capacity',      time:'10 min', items:['Headcount gaps or surpluses','Budget consumption vs plan']},
+    {title:'Cross-functional Issues',  time:'5 min',  items:['Items affecting multiple departments or causing inter-team friction']},
+    {title:'Actions & Close',          time:'5 min',  items:['Assign actions with owners and dates','Flag items to escalate to EXCO']},
+  ],
+  departmental:[
+    {title:'Priorities Alignment',     time:'10 min', items:["What are we focused on this week?","Alignment to department and company goals"]},
+    {title:'Previous Action Items',    time:'5 min',  items:["Quick sweep of last week's actions","Flag blockers immediately"]},
+    {title:'Team Updates',             time:'20 min', items:['Round-robin: individual progress and wins','Keep it tight — exceptions and highlights only']},
+    {title:'Blockers & Escalations',   time:'15 min', items:["What's stopping progress?","What needs to escalate upward?"]},
+    {title:'Upcoming Deadlines',       time:'5 min',  items:['Deadlines this week','Cross-team dependencies']},
+    {title:'Actions & Close',          time:'5 min',  items:['Actions with owners and due dates']},
+  ],
+  board:[
+    {title:'Welcome & Apologies',               time:'5 min',  owner:'Niall Carroll',
+     items:['Attendees: Niall Carroll, Jason English, James Finnigan, John Maddern, Karen Cumming, Michael Clark, Abdullah Baharoon, Frank Mathews',
+            'Apologies: None recorded',
+            'Absent Without Informing: None']},
+    {title:'Approval of Agenda',                time:'2 min',  owner:'Niall Carroll',
+     items:['Agenda presented by Chair for board approval',
+            'Record outcome: Approved / Changed / Rejected']},
+    {title:'Minutes of Previous Meeting',       time:'10 min', owner:'Niall Carroll',
+     items:['Previous meeting: 15 July 2025 — Google Meet (Chair: Jason English)',
+            'Attendees at previous meeting: Jason English, James Finnigan, John Maddern, Michael Clark, Karen Cumming',
+            'Apologies at previous meeting: Niall Carroll, Abdullah Baharoon, Frank Mathews',
+            'Previous material matters & next steps reviewed — follow-on actions captured in new Material Matters document',
+            'Prior agenda approved without amendment']},
+    {title:'Declaration of Directors\' Interests', time:'5 min', owner:'Niall Carroll',
+     items:['Jason English — AVA Investments (Dania / Mesk properties, may be rented to Al Laith staff at arms length)',
+            'Niall Carroll — AVA Investments (Dania / Mesk properties, may be rented to Al Laith staff at arms length)',
+            'Abdullah Baharoon — Multiple companies under his name',
+            'Frank Mathews — None declared',
+            'James Finnigan — None declared',
+            'Michael Clark — None declared',
+            'John Maddern — Non-Executive Director in Co-insight (telematics IoT solutions, Site Services Division)',
+            'Resolved: No material conflicts of interest; all declared conflicts managed appropriately']},
+    {title:'CEO Business Overview',             time:'20 min', owner:'Jason English',
+     items:['2025: Record revenues and record EBITDA — 30th anniversary year (founded 1995)',
+            'Platform spans engineering, event projects, construction access, temporary infrastructure, plant & machinery, and specialist project delivery',
+            'FY2025 consolidated revenue: AED 447 million (Qiddiya Film Studio contributed AED 171 million)',
+            'Qiddiya has increased reported revenue but diluted Group margins due to current accounting treatment',
+            'Underlying revenue growth ex-Qiddiya: approximately 20% — reflects UAE strength and selective KSA expansion',
+            'Business entered 2026 with strong momentum; forward pipeline active and tone across the Group bullish']},
+    {title:'Executive Committee & Succession',  time:'10 min', owner:'Jason English',
+     items:['Jason English — Chief Executive Officer',
+            'James Finnigan — Chief Commercial Officer',
+            'Michael Clark — Operations Director',
+            'John Maddern — Operations Director',
+            'Paul Cranko — Operations Manager',
+            'Simon Turner — Operations Manager (Resigned)',
+            'Vincent Nibbering — Operations Manager',
+            'Joe Prepok — Operations Manager']},
+    {title:'Strategic Objectives 2026',         time:'20 min', owner:'Jason English',
+     items:['Finalise business restructure and ERP stabilisation',
+            'Resolve succession and KPI alignment gaps across leadership (especially EPC)',
+            'Re-establish stock control and shared document discipline',
+            'Decide strategic direction for Oman and Jazan',
+            'Launch Nepal / Philippines admin pilot and evaluate',
+            'Assess Philippines engineering hub under Malcolm',
+            'Finalise operational sectors and appoint account manager leads per sector',
+            'Target sectors: Built Environment & Urban Infrastructure · Industrial, Energy & Critical Infrastructure · Film, Media & Studio Infrastructure · Marine & Port Infrastructure · Sporting, Cultural & Music Infrastructure · Data Centre & Disaster Response Infrastructure · Venues & Facilities Infrastructure · Marine, Port, Aviation & Defence Infrastructure']},
+    {title:'Financial Review',                  time:'35 min', owner:'Karen Cumming',
+     items:['FY2025 consolidated revenue: AED 447 million (Qiddiya: AED 171 million — diluted reported margins)',
+            'Underlying revenue growth ex-Qiddiya: ~20%',
+            'EBITDA: AED 90.7 million',
+            'Net profit after tax: AED 47.1 million',
+            'UAE — Construction: substantial revenue growth with improved margins and labour productivity',
+            'UAE — Powered Access: fleet expansion and improved utilisation delivering strong revenue and margin growth',
+            'UAE — Events: revenue growth with some margin pressure due to reduced cross-hire income',
+            'Saudi Arabia: transitional phase — scaling into larger EPC-type opportunities',
+            'Appendix 1: Al Laith Management Accounts FY2025',
+            'Appendix 2: Al Laith FY2026 Budget + YTD February 2026']},
+    {title:'Any Other Business',                time:'20 min', owner:'All',
+     items:['Scenario Planning & Business Impact — Middle East (John Maddern)',
+            'Personnel matters: Simon Turner departure, Johan Tredoux, Nadia / Malcolm / Hersely salary adjustments',
+            'Cost saving measures to be tabled — James Finnigan',
+            'Related party loan settlements — James Finnigan',
+            'Chairman\'s Retreat — Jason English',
+            '2026 ME War response — Categories A, B, C next steps',
+            'Context: Strong momentum entering 2026 has been disrupted by regional conflict — priority is preserving liquidity, protecting the core business, and maintaining realistic scenario planning']},
+    {title:'Material Matters & Key Next Steps',  time:'15 min', owner:'Niall Carroll',
+     items:['Review all 11 open actions captured from this meeting — see Action Items tracker below',
+            'Confirm owner and due date for each action',
+            'Carry forward any outstanding actions from previous meeting',
+            'Note any actions requiring escalation or Board-level decision before next meeting']},
+    {title:'Closure & Thanks',                  time:'3 min',  owner:'Niall Carroll',
+     items:['Confirm next board meeting date: TBC',
+            'Thanks to all attendees and contributors']},
+  ],
+  project:[
+    {title:'Project Status Overview',  time:'10 min', items:['RAG status per workstream','Schedule: on-track / delayed / at risk']},
+    {title:'Previous Action Items',    time:'5 min',  items:['Check prior steering committee actions']},
+    {title:'Milestone Review',         time:'15 min', items:['Milestones achieved since last meeting','Upcoming milestones and readiness']},
+    {title:'Issues & Risks Log',       time:'15 min', items:['Open issues requiring steering-level resolution','Top risk mitigations']},
+    {title:'Budget Review',            time:'10 min', items:['Spend vs approved budget','Forecast to completion']},
+    {title:'Decisions Required',       time:'10 min', items:['Scope changes requiring approval','Resource requests above PM authority']},
+    {title:'Actions & Close',          time:'5 min',  items:['Actions with owners and dates','Next steering committee date']},
+  ],
+  oneonone:[
+    {title:'Check-In',                 time:'5 min',  items:['What is your life score?']},
+    {title:'Progress on Priorities',   time:'10 min', items:["What got done last week?","What didn't — and why?"]},
+    {title:'Blockers & Support',       time:'10 min', items:["What's in the way?",'How can the manager help?']},
+    {title:'Development & Growth',     time:'10 min', items:['Career goals and skills development','Two-way feedback']},
+    {title:'Upcoming Focus',           time:'5 min',  items:['Top 3 priorities for next week','Upcoming decisions or concerns']},
+  ],
+};
+
+const DEFAULT_KPIS = {
+  'QHSE':             ['LTIFR (Lost time injury frequency rate)','TRIR (Total recordable incident rate)','Near Miss Reporting Rate','Audit & Inspection Closure Rate','HSE Training Compliance'],
+  'Finance':          ['Budget vs Actual Variance','Days Sales Outstanding (DSO)','Cash Flow Forecast Accuracy','Compliance (Audit, Tax, ICV, VAT, WHT, Sponsorships, Rebates)','Monthly Close Cycle Time (Invoicing, Credit Notes, PNL)'],
+  'Marketing':        ['Marketing Qualified Leads (MQLs)','MQL to SQL Conversion Rate','Cost per Lead (CPL)','Campaigns (Wellness / Recognition)','Budget v/s Actual (Pipeline Influenced)'],
+  'IT':               ['System Uptime (Email, Internet, Printers, ERP Server and Telephones)','Support Resolution Time','User Adoption Rate of IT Policies & Systems','Maintenance of Adequate Cybersecurity Systems','Backup Success Rate','IT Spend as % of Revenue'],
+  'Digitization':     ['No of projects open by Dept','Average lead time','Budget To Actual'],
+  'Manufacturing':    ['Volume of product produced','CAPEX','OPEX'],
+  'Commercial':       ['Tenders Open','Tender Closed','Conversion Ratio','Contracts Pending'],
+  'HR':               ['Total Headcount - Salary Bill (NT/OT/DT/Leave)','Attrition Ratio / Employee Turnover Rate','Employee Engagement Index','Vacancies / Time-to-Hire','Audit / Compliance (Staff Records, VISA, T&Cs, Onboarding, Training)'],
+  'Logistics':        ['Number of requested deliveries / Deliveries for the month','On-Time Delivery Rate / Lead time average','Vehicle Fleet (Asset) Utilization (Owned & Rented Fleet)','Transport Cost per Move','Damage & Loss Rate','Number of cranes rented (Cost per location)'],
+  'Facilities':       ['Utilization of Accommodation','Maintenance completion rate','Preventive vs Reactive maintenance','Power & AC downtime','Cleaning compliance'],
+  'Procurement':      ['Compliance to Procurement process','Purchase Order Cycle time','Planned vs Urgent','Supplier On-Time','Orders placed with Prequalified suppliers'],
+  'Engineering':      ['No of enquiries / Conversion Ratio','No of re-works','Software implementation %'],
+  'Ops - Events UAE': ['Turnover Budget to Actual','Sales pipeline value in relation to forecast','Profit % to Budget','YOY performance tracker','Quote conversion ratio'],
+  'Ops - Events KSA': ['Turnover Budget to Actual','Sales pipeline value in relation to forecast','Profit % to Budget','YOY performance tracker','Quote conversion ratio'],
+  'Ops - Construction':['Turnover Budget to Actual','Sales pipeline value in relation to forecast','Profit % to Budget','YOY performance tracker','Quote conversion ratio'],
+  'Ops - MCWP':       ['Turnover Budget to Actual','Sales pipeline value in relation to forecast','Profit % to Budget','YOY performance tracker','Quote conversion ratio'],
+  'Ops - PA UAE':     ['Turnover Budget to Actual','Sales pipeline value in relation to forecast','Profit % to Budget','YOY performance tracker','Quote conversion ratio'],
+  'Ops - PA Oman':    ['Turnover Budget to Actual','Sales pipeline value in relation to forecast','Profit % to Budget','YOY performance tracker','Quote conversion ratio'],
+  'Ops - SS UAE':     ['Turnover Budget to Actual','Sales pipeline value in relation to forecast','Profit % to Budget','YOY performance tracker','Quote conversion ratio'],
+  'Ops - SS KSA':     ['Turnover Budget to Actual','Sales pipeline value in relation to forecast','Profit % to Budget','YOY performance tracker','Quote conversion ratio'],
+};
+
+const FRAMEWORK_MAP = [
+  {id:'board',        level:0, purpose:'GOVERNANCE',  desc:'Shareholder accountability, major approvals, governance'},
+  {id:'exco',         level:1, purpose:'STRATEGIC',   desc:'Strategic direction, company-wide decisions, risk oversight'},
+  {id:'management',   level:2, purpose:'OPERATIONAL', desc:'Operational KPIs, cross-departmental issues, resource management'},
+  {id:'project',      level:2, purpose:'OPERATIONAL', desc:'Specific project progress, decisions, budget and risk tracking'},
+  {id:'departmental', level:3, purpose:'EXECUTION',   desc:'Team-level execution, weekly priorities, blockers'},
+  {id:'oneonone',     level:3, purpose:'EXECUTION',   desc:'Individual performance, coaching, personal development'},
+];
+
+const RAG_COLORS = {R:C.red, A:C.amber, G:C.green};
+
+const KPI_META = {
+  'QHSE':              [{u:'rate',d:'lower'},{u:'rate',d:'lower'},{u:'per 1,000h',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'}],
+  'Finance':           [{u:'%',d:'lower'},{u:'days',d:'lower'},{u:'%',d:'higher'},{u:'%',d:'higher'},{u:'days',d:'lower'}],
+  'Marketing':         [{u:'count',d:'higher'},{u:'%',d:'higher'},{u:'AED',d:'lower'},{u:'%',d:'higher'},{u:'AED',d:'higher'}],
+  'IT':                [{u:'%',d:'higher'},{u:'hours',d:'lower'},{u:'%',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'lower'}],
+  'Digitization':      [{u:'count',d:'higher'},{u:'hours',d:'lower'},{u:'%',d:'lower'}],
+  'Manufacturing':     [{u:'tons',d:'higher'},{u:'AED',d:'lower'},{u:'AED',d:'lower'}],
+  'Commercial':        [{u:'count',d:'higher'},{u:'count',d:'higher'},{u:'%',d:'higher'},{u:'count',d:'info'}],
+  'HR':                [{u:'count',d:'info'},{u:'%',d:'lower'},{u:'score',d:'higher'},{u:'days',d:'lower'},{u:'%',d:'higher'}],
+  'Logistics':         [{u:'count',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'},{u:'AED',d:'lower'},{u:'%',d:'lower'},{u:'count',d:'info'}],
+  'Facilities':        [{u:'%',d:'higher'},{u:'%',d:'higher'},{u:'ratio',d:'higher'},{u:'hrs',d:'lower'},{u:'%',d:'higher'}],
+  'Procurement':       [{u:'%',d:'higher'},{u:'days',d:'lower'},{u:'%',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'}],
+  'Engineering':       [{u:'ratio',d:'higher'},{u:'count',d:'lower'},{u:'%',d:'higher'}],
+  'Ops - Events UAE':  [{u:'AED',d:'higher'},{u:'AED',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'}],
+  'Ops - Events KSA':  [{u:'AED',d:'higher'},{u:'AED',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'}],
+  'Ops - Construction':[{u:'AED',d:'higher'},{u:'AED',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'}],
+  'Ops - MCWP':        [{u:'AED',d:'higher'},{u:'AED',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'}],
+  'Ops - PA UAE':      [{u:'AED',d:'higher'},{u:'AED',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'}],
+  'Ops - PA Oman':     [{u:'AED',d:'higher'},{u:'AED',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'}],
+  'Ops - SS UAE':      [{u:'AED',d:'higher'},{u:'AED',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'}],
+  'Ops - SS KSA':      [{u:'AED',d:'higher'},{u:'AED',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'}],
+};
+
+let currentTab = 'framework';
+let actions    = {};
+let ragMap     = {};
+let kpiNames   = JSON.parse(JSON.stringify(DEFAULT_KPIS));
+let expandedItems = {};
+let addingFor  = null;
+let filterFor  = {};
+let activeDept = 'QHSE';
+let editingKpi = null;
+let formData   = {title:'', owner:'', dueDate:''};
+let activeResultsDept = 'QHSE';
+let kpiActuals = {};
+let kpiPeriod  = new Date().toISOString().slice(0,7);
+
+try { const s=localStorage.getItem('al_mf_actions');if(s) actions=JSON.parse(s); } catch(e){}
+if (!actions.board) actions.board = [];
+[
+  {id:1001,title:'Finalise scenario-based financial model, including validation of assumptions and refinement of cash flow projections',owner:'Maddern / Clark / Cumming',dueDate:'2026-05-15',status:'open',createdAt:'2026-04-09T00:00:00.000Z'},
+  {id:1002,title:'Prepare detailed cash flow impact analysis of salary deferrals, workforce reductions, and other cost levers',owner:'Cumming / Maddern',dueDate:'2026-05-15',status:'open',createdAt:'2026-04-09T00:00:00.000Z'},
+  {id:1003,title:'Develop and implement a comprehensive remuneration framework covering salary deferrals, FY2025 bonus treatment, and a temporary freeze on salary increases with clear communication to staff',owner:'English / EXCO',dueDate:'2026-05-15',status:'open',createdAt:'2026-04-09T00:00:00.000Z'},
+  {id:1004,title:'Implement stricter recruitment controls requiring EXCO approval for all new hires',owner:'EXCO',dueDate:'2026-05-15',status:'open',createdAt:'2026-04-09T00:00:00.000Z'},
+  {id:1005,title:'Review and propose remote workforce salary adjustments aligned to geography and value contribution',owner:'English / EXCO',dueDate:'2026-05-15',status:'open',createdAt:'2026-04-09T00:00:00.000Z'},
+  {id:1006,title:'Finalise and enforce employee documentation compliance (contracts, NDAs, etc.)',owner:'James Finnigan',dueDate:'2026-05-15',status:'open',createdAt:'2026-04-09T00:00:00.000Z'},
+  {id:1007,title:'Establish a single source of truth for employee data with clear ownership and update accountability',owner:'Mathews / Clark',dueDate:'2026-05-15',status:'open',createdAt:'2026-04-09T00:00:00.000Z'},
+  {id:1008,title:'Implement automated reporting / tracking for HR compliance (e.g. unsigned contracts)',owner:'Frank Mathews',dueDate:'2026-05-15',status:'open',createdAt:'2026-04-09T00:00:00.000Z'},
+  {id:1009,title:'Secure and transfer ownership of critical operational data (HSSE systems) to company-controlled environment',owner:'Frank Mathews',dueDate:'2026-05-15',status:'open',createdAt:'2026-04-09T00:00:00.000Z'},
+  {id:1010,title:'Ensure consistent internal communication to staff regarding business position and potential measures',owner:'English / EXCO',dueDate:'2026-05-15',status:'open',createdAt:'2026-04-09T00:00:00.000Z'},
+  {id:1011,title:'Advance participation in UAE "Scale Up" initiatives and report back to the Board',owner:'Jason English',dueDate:'2026-05-15',status:'open',createdAt:'2026-04-09T00:00:00.000Z'},
+].forEach(s=>{
+  if(!actions.board.some(a=>a.id===s.id)){
+    const pos=actions.board.findIndex(a=>a.id>s.id);
+    if(pos===-1) actions.board.push({...s}); else actions.board.splice(pos,0,{...s});
+  }
+});
+if (!actions.exco) actions.exco = [];
+[
+  // HSE
+  {id:2001,title:'Engage Frank\'s team on Safety app — knowledge & IP transfer',owner:'James Finnigan',dueDate:'',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  {id:2002,title:'Explore automation of RAMS via Frank\'s team',owner:'James Finnigan',dueDate:'',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  {id:2003,title:'Recruit new Safety Manager with international travel ability',owner:'James Finnigan',dueDate:'',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  // Human Capital
+  {id:2004,title:'Organise ERP / procurement onboarding sessions',owner:'James Finnigan',dueDate:'',status:'open',createdAt:'2025-12-10T00:00:00.000Z'},
+  {id:2005,title:'Obtain list of staff refusing to sign T&Cs and manage non-compliance',owner:'James Finnigan',dueDate:'',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  {id:2006,title:'Scope and recruit HR Manager role',owner:'James Finnigan',dueDate:'',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  {id:2007,title:'Build digital HR dashboard — staff turnover and retention statistics',owner:'James Finnigan',dueDate:'',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  {id:2008,title:'Appoint new HCM (Arabic Speaker)',owner:'James Finnigan',dueDate:'',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  // Logistics & Facilities
+  {id:2009,title:'Assess DIC yard capacity constraints and congestion risks',owner:'John Maddern / Mike Clark',dueDate:'',status:'open',createdAt:'2025-12-10T00:00:00.000Z'},
+  {id:2010,title:'Address yard power capacity and mixed storage risks',owner:'John Maddern / Mike Clark',dueDate:'',status:'open',createdAt:'2025-12-10T00:00:00.000Z'},
+  {id:2011,title:'Review Abu Dhabi permit frictions and Qatar asset positioning',owner:'James Finnigan / Alan',dueDate:'',status:'open',createdAt:'2025-12-10T00:00:00.000Z'},
+  {id:2012,title:'Produce yard capacity options paper (incl. AD yard & power)',owner:'James Finnigan / Alan',dueDate:'',status:'open',createdAt:'2025-12-10T00:00:00.000Z'},
+  {id:2013,title:'Develop Fabrication Facility business model',owner:'Mike Clark',dueDate:'',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  // Finance
+  {id:2014,title:'Resolve Oman customer (~360 days outstanding) — present recovery strategy',owner:'Jason English',dueDate:'',status:'open',createdAt:'2025-12-10T00:00:00.000Z'},
+  {id:2015,title:'Develop phased defleeting plan for ~200 aging machines',owner:'John Maddern',dueDate:'2026-05-15',status:'open',createdAt:'2025-12-10T00:00:00.000Z'},
+  {id:2016,title:'Deliver MBA outputs on fleet replenishment strategy',owner:'Joe / John Maddern',dueDate:'2026-05-15',status:'open',createdAt:'2025-12-10T00:00:00.000Z'},
+  {id:2017,title:'Fill Finance Manager vacancy for KSA business',owner:'James Finnigan / Karen Cumming',dueDate:'',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  // Estimating & Commercial
+  {id:2018,title:'Overhaul pricing methodology and depreciation models',owner:'All EXCO',dueDate:'',status:'open',createdAt:'2025-12-10T00:00:00.000Z'},
+  {id:2019,title:'Lead pricing & depreciation working group',owner:'Mike Clark',dueDate:'2026-05-15',status:'open',createdAt:'2025-12-10T00:00:00.000Z'},
+  {id:2020,title:'Define costing process for Golf Events',owner:'John Maddern / Vincent',dueDate:'',status:'open',createdAt:'2025-12-10T00:00:00.000Z'},
+  {id:2021,title:'Assess viability for site rental facility',owner:'John Maddern',dueDate:'',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  {id:2022,title:'Evaluate and negotiate on QID tent ownership',owner:'Paul',dueDate:'',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  // IT & Digital
+  {id:2023,title:'Deliver MBA digital operating model blueprint',owner:'Joe / John Maddern',dueDate:'2026-05-15',status:'open',createdAt:'2025-12-10T00:00:00.000Z'},
+  {id:2024,title:'Scope and design maintenance management app',owner:'Joe / Paul',dueDate:'',status:'open',createdAt:'2025-12-10T00:00:00.000Z'},
+  {id:2025,title:'Recruit ERP systems specialist',owner:'James Finnigan / Kenan',dueDate:'',status:'open',createdAt:'2025-12-10T00:00:00.000Z'},
+  // Manufacturing & Fabrication
+  {id:2026,title:'Assess feasibility of in-house Ringlock manufacture',owner:'John Maddern',dueDate:'',status:'open',createdAt:'2025-12-10T00:00:00.000Z'},
+  {id:2027,title:'Develop manufacturing model for cabins (bases / roof coverage)',owner:'John Maddern',dueDate:'',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  {id:2028,title:'Develop manufacturing model for carts (chassis / frames)',owner:'John Maddern',dueDate:'',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  // Marketing
+  {id:2029,title:'Market Ringlock productivity gains (~22%) to construction clients',owner:'John Maddern',dueDate:'',status:'open',createdAt:'2025-12-10T00:00:00.000Z'},
+  {id:2030,title:'Redesign events calendar and accreditation process',owner:'Vincent',dueDate:'',status:'open',createdAt:'2025-12-10T00:00:00.000Z'},
+  {id:2031,title:'Employ social media / marketing specialist',owner:'Jason English',dueDate:'',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  {id:2032,title:'Define and re-visit marketing strategy',owner:'James Finnigan',dueDate:'',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  {id:2033,title:'Embed values, Mission, Vision & UGRs into regular training sessions',owner:'John Maddern',dueDate:'',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  // Business Development
+  {id:2034,title:'Structure golf cart business as standalone vertical by end of 2026',owner:'John Maddern',dueDate:'',status:'open',createdAt:'2025-12-10T00:00:00.000Z'},
+  // Engineering
+  {id:2035,title:'Update org chart to reflect Engineering reporting into Mike Clark',owner:'Mike Clark / Nadia',dueDate:'2026-05-15',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  {id:2036,title:'Develop strategy and succession plan for engineering resource depth',owner:'Mike Clark',dueDate:'2026-05-15',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  {id:2037,title:'Develop strategy to monetise Engineering as standalone P&L',owner:'Mike Clark',dueDate:'',status:'open',createdAt:'2026-02-16T00:00:00.000Z'},
+  // Quality Control
+  {id:2038,title:'Re-categorise site overlay assets by sector',owner:'John Maddern',dueDate:'',status:'open',createdAt:'2026-02-16T00:00:00.000Z'},
+  {id:2039,title:'Draft scaffold inspection process for wall thickness and propose write-off policy',owner:'Mike Clark',dueDate:'',status:'open',createdAt:'2026-02-20T00:00:00.000Z'},
+  // Any Other Business
+  {id:2040,title:'Coordinate UVU MBA projects delivery',owner:'Joe / John Maddern',dueDate:'',status:'open',createdAt:'2025-12-10T00:00:00.000Z'},
+  {id:2041,title:'Mast Climber business strategy',owner:'Mike Clark',dueDate:'',status:'open',createdAt:'2026-02-16T00:00:00.000Z'},
+  {id:2042,title:'Succession Planning — each EXCO member to nominate and prepare successor',owner:'All EXCO',dueDate:'',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  {id:2043,title:'Review war insurance coverage and confirm company position',owner:'James Finnigan',dueDate:'',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  {id:2044,title:'Evaluate and make offer on Stamina Grandstands',owner:'Mike Clark',dueDate:'',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  {id:2045,title:'Project Toblerone (Rodero / Nuusli / Al Laith) — update and progress',owner:'Jason English',dueDate:'2026-12-31',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+  {id:2046,title:'Engage Kim\'s team for EXCO Secretarial / governance support role',owner:'Jason English',dueDate:'',status:'open',createdAt:'2026-02-02T00:00:00.000Z'},
+].forEach(s=>{
+  if(!actions.exco.some(a=>a.id===s.id)){
+    const pos=actions.exco.findIndex(a=>a.id>s.id);
+    if(pos===-1) actions.exco.push({...s}); else actions.exco.splice(pos,0,{...s});
+  }
+});
+save();
+try { const s=localStorage.getItem('al_mf_rag');if(s) ragMap=JSON.parse(s); } catch(e){}
+try { const s=localStorage.getItem('al_mf_kpi');if(s) kpiNames=JSON.parse(s); } catch(e){}
+try { const s=localStorage.getItem('al_mf_actuals');if(s){const p=JSON.parse(s);kpiActuals=p.data||{};if(p.period)kpiPeriod=p.period;} } catch(e){}
+
+function save() {
+  try{localStorage.setItem('al_mf_actions',JSON.stringify(actions));}catch(e){}
+  try{localStorage.setItem('al_mf_rag',JSON.stringify(ragMap));}catch(e){}
+  try{localStorage.setItem('al_mf_kpi',JSON.stringify(kpiNames));}catch(e){}
+  try{localStorage.setItem('al_mf_actuals',JSON.stringify({period:kpiPeriod,data:kpiActuals}));}catch(e){}
+}
+
+const today=new Date(); today.setHours(0,0,0,0);
+function isOverdue(a){if(a.status==='closed'||!a.dueDate)return false;const d=new Date(a.dueDate);d.setHours(0,0,0,0);return d<today;}
+function getStats(mid){const all=actions[mid]||[];return{open:all.filter(a=>a.status==='open'&&!isOverdue(a)).length,overdue:all.filter(isOverdue).length,closed:all.filter(a=>a.status==='closed').length};}
+function getFiltered(mid){const all=actions[mid]||[];const f=filterFor[mid]||'all';if(f==='open')return all.filter(a=>a.status==='open'&&!isOverdue(a));if(f==='overdue')return all.filter(isOverdue);if(f==='closed')return all.filter(a=>a.status==='closed');return all;}
+
+function render(){renderSidebar();renderMain();}
+
+function renderSidebar(){
+  const sb=document.getElementById('sidebar');
+  let html=`<div style="background:#0C172C;padding:20px 16px 16px;border-bottom:3px solid ${C.primary};">
+    <div style="font-size:8px;letter-spacing:3px;color:${C.subText};text-transform:uppercase;margin-bottom:6px;">AL LAITH</div>
+    <div style="font-size:15px;font-weight:bold;color:${C.white};letter-spacing:1px;line-height:1.3;">MEETING<br><span style="color:${C.primary};">FRAMEWORK</span></div>
+    <div style="margin-top:8px;font-size:8px;color:${C.subText};font-style:italic;letter-spacing:0.5px;">Whatever it takes.</div>
+  </div>`;
+  TABS.forEach(t=>{
+    const st=t.id!=='framework'?getStats(t.id):{overdue:0,open:0};
+    const active=currentTab===t.id;
+    const badge=st.overdue>0?`<span style="font-size:9px;background:${C.red};color:#fff;border-radius:8px;padding:1px 6px;font-weight:bold;">${st.overdue}</span>`:st.open>0?`<span style="font-size:9px;background:${C.primary}40;color:${C.lightest};border-radius:8px;padding:1px 6px;">${st.open}</span>`:'';
+    html+=`<button onclick="switchTab('${t.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 16px;cursor:pointer;font-size:11.5px;background:${active?C.primary+'25':'transparent'};border-left:3px solid ${active?t.color:'transparent'};border-top:none;border-right:none;border-bottom:none;color:${active?C.white:C.subText};width:100%;text-align:left;transition:background 0.15s;">
+      <span style="display:flex;align-items:center;gap:8px;"><span style="opacity:${active?1:0.5};">${t.icon}</span>${t.label}</span>${badge}</button>`;
+  });
+  html+=`<div style="padding:16px;border-top:1px solid ${C.border};margin-top:auto;">
+    <div style="font-size:9px;color:${C.muted};text-align:center;line-height:1.8;">
+      <div style="color:${C.subText};font-weight:bold;margin-bottom:3px;">Core Values</div>
+      Safety · Responsible<br>Agile · People First
+    </div>
+  </div>`;
+  sb.innerHTML=html;
+}
+
+function switchTab(id){currentTab=id;addingFor=null;render();}
+
+function renderMain(){
+  const el=document.getElementById('main');
+  if(currentTab==='framework') el.innerHTML=renderFramework();
+  else if(currentTab==='kpiresults') el.innerHTML=renderKpiResults();
+  else el.innerHTML=renderMeeting(currentTab);
+}
+
+function renderFramework(){
+  const rows=FRAMEWORK_MAP.map(m=>{
+    const meta=META[m.id];const st=getStats(m.id);
+    const ovBadge=st.overdue>0?`<span style="font-size:9px;color:${C.red};background:${C.red}20;padding:2px 8px;border-radius:8px;font-weight:bold;">${st.overdue} overdue</span>`:st.open>0?`<span style="font-size:9px;color:${C.lightest};background:${C.primary}25;padding:2px 8px;border-radius:8px;">${st.open} open</span>`:'';
+    return `<div style="margin-left:${m.level*24}px;position:relative;margin-bottom:8px;">
+      ${m.level>0?`<div style="position:absolute;left:-15px;top:50%;width:15px;height:1px;background:${C.muted};"></div>`:''}
+      <div onclick="switchTab('${m.id}')" onmouseenter="this.style.background='${C.cardHover}'" onmouseleave="this.style.background='${C.card}'" style="display:flex;align-items:center;gap:14px;background:${C.card};border:1px solid ${C.border};border-left:3px solid ${meta.color};border-radius:4px;padding:12px 14px;cursor:pointer;transition:background 0.2s;">
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap;">
+            <span style="font-size:13px;font-weight:bold;color:${C.white};">${meta.title}</span>
+            <span style="font-size:8px;letter-spacing:1.5px;color:${meta.color};background:${meta.color}20;padding:2px 8px;border-radius:8px;font-weight:bold;">${m.purpose}</span>
+            ${ovBadge}
+          </div>
+          <div style="font-size:11px;color:${C.subText};">${m.desc}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:11px;color:${meta.color};font-weight:bold;">${meta.freq}</div>
+          <div style="font-size:10px;color:${C.muted};">${meta.dur}</div>
+        </div>
+        <div style="color:${C.muted};font-size:16px;padding-left:4px;">›</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const rules=[
+    ['📋','Pre-reads submitted 48 hours before every meeting — meetings are for decisions, not information sharing'],
+    ['🔒','Agenda locked 5 days prior — no walk-in items allowed at any meeting level'],
+    ['⏱','Assign a dedicated timekeeper to hold the agenda and protect the schedule'],
+    ['✅','A running action log is reviewed at every single meeting — actions never fall through the cracks'],
+    ['📏','EXCO ≠ Ops — operational issues belong in Management meetings, never EXCO'],
+  ].map(([icon,text],i)=>`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:${i<4?`1px solid ${C.border}`:'none'};font-size:11px;color:${C.subText};line-height:1.6;"><span style="flex-shrink:0;margin-top:1px;">${icon}</span><span>${text}</span></div>`).join('');
+
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="font-size:22px;font-weight:bold;color:${C.white};letter-spacing:0.5px;">Meeting Framework</div>
+        <div style="font-size:9px;letter-spacing:2.5px;color:${C.subText};text-transform:uppercase;margin-top:2px;">Al Laith · Governance Structure · Whatever it takes.</div>
+      </div>
+      <div style="background:${C.primary};color:${C.white};padding:7px 16px;border-radius:4px;font-size:10px;font-weight:bold;letter-spacing:1.5px;">AL LAITH</div>
+    </div>
+    <div style="width:44px;height:3px;background:${C.primary};border-radius:2px;margin-bottom:22px;"></div>
+    <div style="background:${C.card};border:1px solid ${C.border};border-left:3px solid ${C.primary};border-radius:4px;padding:14px 18px;margin-bottom:20px;font-size:11.5px;color:${C.subText};line-height:1.8;">
+      A well-structured business runs <strong style="color:${C.white};">distinct meeting cadences</strong>, each with a clear purpose, frequency, and attendee list. This framework separates governance, strategy, operations, and execution — so the right conversations happen at the right level, every time. <strong style="color:${C.primary};">Click any meeting below</strong> to open its agenda and action tracker.
+    </div>
+    ${rows}
+    <div style="background:${C.card};border:1px solid ${C.border};border-radius:4px;padding:18px;margin-top:14px;">
+      <div style="font-size:9px;letter-spacing:2px;color:${C.primary};margin-bottom:12px;font-weight:bold;text-transform:uppercase;">Golden Rules</div>
+      ${rules}
+    </div>`;
+}
+
+function renderMeeting(mid){
+  const meta=META[mid];
+  const badges=[
+    `<span style="padding:5px 12px;background:${meta.color}20;border:1px solid ${meta.color}50;border-radius:3px;font-size:10px;color:${meta.color};font-weight:bold;">📅 ${meta.freq}</span>`,
+    `<span style="padding:5px 12px;background:${meta.color}20;border:1px solid ${meta.color}50;border-radius:3px;font-size:10px;color:${meta.color};font-weight:bold;">⏱ ${meta.dur}</span>`,
+    `<span style="padding:5px 12px;background:${meta.color}20;border:1px solid ${meta.color}50;border-radius:3px;font-size:10px;color:${meta.color};font-weight:bold;">👥 ${meta.att}</span>`,
+  ].join('');
+  return `
+    <div style="font-size:21px;font-weight:bold;color:${C.white};margin-bottom:4px;">${meta.title}</div>
+    <div style="width:36px;height:3px;background:${meta.color};border-radius:2px;margin-bottom:14px;"></div>
+    <div style="display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap;">${badges}</div>
+    ${mid==='management'?renderKpis():''}
+    ${renderAgenda(mid)}
+    ${renderActions(mid)}`;
+}
+
+function renderKpis(){
+  const deptKpis=kpiNames[activeDept]||DEFAULT_KPIS[activeDept];
+  const deptTabs=Object.keys(DEFAULT_KPIS).map(d=>{
+    const dR=(kpiNames[d]||DEFAULT_KPIS[d]).map((_,i)=>ragMap[`${d}_${i}`]);
+    const hasR=dR.some(r=>r==='R'),hasA=dR.some(r=>r==='A');
+    const dot=hasR?`<span style="margin-left:4px;font-size:8px;color:${C.red};">●</span>`:hasA?`<span style="margin-left:4px;font-size:8px;color:${C.amber};">●</span>`:'';
+    const active=activeDept===d;
+    return `<button onclick="setDept('${d}')" style="padding:5px 12px;border-radius:3px;border:1px solid ${hasR?C.red+'50':hasA?C.amber+'40':C.border};cursor:pointer;font-size:11px;font-family:Arial;background:${active?C.primary:'transparent'};color:${active?C.white:C.subText};font-weight:${active?'bold':'normal'};">${d}${dot}</button>`;
+  }).join('');
+
+  const kpiRows=deptKpis.map((name,idx)=>{
+    const key=`${activeDept}_${idx}`;const rag=ragMap[key];
+    const ragBtns=['R','A','G'].map(r=>`<button onclick="setRag('${activeDept}',${idx},'${r}')" style="width:26px;height:26px;border-radius:3px;border:none;cursor:pointer;font-size:9px;font-weight:bold;font-family:Arial;background:${rag===r?RAG_COLORS[r]:RAG_COLORS[r]+'30'};color:${rag===r?'#fff':RAG_COLORS[r]};">${r}</button>`).join('');
+    if(editingKpi===key) return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:${idx<4?`1px solid ${C.border}`:'none'};">
+      <div style="width:9px;height:9px;border-radius:2px;background:${rag?RAG_COLORS[rag]:C.muted};flex-shrink:0;"></div>
+      <div style="flex:1;display:flex;gap:6px;">
+        <input id="kpiInput" value="${name.replace(/"/g,'&quot;')}" onkeydown="handleKpiKey(event,'${key}')" style="background:${C.bg};border:1px solid ${C.primary};border-radius:3px;padding:5px 8px;color:${C.white};font-size:11px;font-family:Arial;outline:none;flex:1;">
+        <button onclick="saveKpi('${key}')" style="padding:4px 10px;background:${C.primary};color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:11px;font-family:Arial;font-weight:bold;">Save</button>
+        <button onclick="cancelKpi()" style="padding:4px 8px;background:${C.muted};color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:11px;font-family:Arial;">✕</button>
+      </div>
+      <div style="display:flex;gap:3px;">${ragBtns}</div>
+    </div>`;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:${idx<4?`1px solid ${C.border}`:'none'};">
+      <div style="width:9px;height:9px;border-radius:2px;background:${rag?RAG_COLORS[rag]:C.muted};flex-shrink:0;transition:background 0.3s;"></div>
+      <div style="flex:1;"><span onclick="startEditKpi('${key}','${name.replace(/'/g,"\\'")}',${idx})" title="Click to customise" style="font-size:12px;color:${C.text};cursor:text;border-bottom:1px dashed ${C.muted};padding-bottom:1px;">${name}</span></div>
+      <div style="display:flex;gap:3px;">${ragBtns}</div>
+    </div>`;
+  }).join('');
+
+  return `<div style="background:${C.card};border:1px solid ${C.border};border-left:3px solid ${C.management};border-radius:4px;padding:18px;margin-bottom:16px;">
+    <div style="font-size:9px;letter-spacing:2px;color:${C.primary};margin-bottom:4px;font-weight:bold;text-transform:uppercase;">KPI Dashboard</div>
+    <div style="font-size:11px;color:${C.subText};margin-bottom:14px;">Click any KPI name to customise. Set RAG status live during the meeting.</div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px;">${deptTabs}</div>
+    ${kpiRows}
+    <div style="margin-top:12px;padding:9px 12px;background:${C.primary}15;border-radius:3px;font-size:10.5px;color:${C.subText};">
+      💡 <strong style="color:${C.text};">Customise:</strong> Click any KPI name to replace it with your own metric. Coloured squares flag Red/Amber metrics at a glance.
+    </div>
+  </div>`;
+}
+
+function renderAgenda(mid){
+  const agenda=AGENDAS[mid]||[];const color=META[mid].color;
+  const rows=agenda.map((item,i)=>{
+    const key=`${mid}_a_${i}`;const open=expandedItems[key];
+    const subs=open?item.items.map(s=>`<div style="font-size:11px;color:${C.subText};padding:3px 0 3px 12px;border-left:2px solid ${color}60;margin-top:4px;line-height:1.6;">— ${s}</div>`).join(''):'';
+    return `<div style="display:flex;gap:12px;padding:10px 0;border-bottom:${i<agenda.length-1?`1px solid ${C.border}`:'none'};">
+      <div style="min-width:52px;font-size:10px;color:${color};font-weight:bold;padding-top:2px;">${item.time}</div>
+      <div style="flex:1;">
+        <div onclick="toggleItem('${key}')" style="font-size:12.5px;font-weight:bold;color:${C.text};cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
+          <span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">${item.title}${item.owner?`<span style="font-size:10px;font-weight:normal;color:${C.muted};background:${C.border};padding:2px 8px;border-radius:8px;">${item.owner}</span>`:''}</span>
+          <span style="color:${C.muted};font-size:10px;margin-left:8px;flex-shrink:0;">${open?'▲':'▼'}</span>
+        </div>${subs}
+      </div>
+    </div>`;
+  }).join('');
+  return `<div style="background:${C.card};border:1px solid ${C.border};border-radius:4px;padding:18px;">
+    <div style="font-size:9px;letter-spacing:2px;color:${color};margin-bottom:12px;font-weight:bold;text-transform:uppercase;">Agenda</div>
+    ${rows}
+  </div>`;
+}
+
+function renderActions(mid){
+  const meta=META[mid];const st=getStats(mid);const acts=getFiltered(mid);const f=filterFor[mid]||'all';
+  const openB=st.open>0?`<span style="font-size:10px;color:${C.light};background:${C.primary}25;padding:2px 8px;border-radius:8px;">${st.open} open</span>`:'';
+  const ovB=st.overdue>0?`<span style="font-size:10px;color:${C.red};background:${C.red}20;padding:2px 8px;border-radius:8px;">${st.overdue} overdue</span>`:'';
+  const closedB=st.closed>0?`<span style="font-size:10px;color:${C.green};background:${C.green}20;padding:2px 8px;border-radius:8px;">${st.closed} closed</span>`:'';
+  const addBtn=`<button onclick="toggleAddForm('${mid}')" style="padding:7px 14px;background:${addingFor===mid?C.muted:C.primary};color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:11px;font-weight:bold;font-family:Arial;">${addingFor===mid?'✕ Cancel':'+ Add Action'}</button>`;
+  const addForm=addingFor===mid?`<div style="background:${C.bg};border:1px solid ${C.primary}60;border-radius:4px;padding:14px;margin-bottom:12px;">
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+      <input id="aTitle" type="text" placeholder="Action item *" value="${formData.title}" oninput="formData.title=this.value" style="background:${C.card};border:1px solid ${C.border};border-radius:3px;padding:7px 9px;color:${C.white};font-size:11px;outline:none;font-family:Arial;">
+      <input id="aOwner" type="text" placeholder="Owner" value="${formData.owner}" oninput="formData.owner=this.value" style="background:${C.card};border:1px solid ${C.border};border-radius:3px;padding:7px 9px;color:${C.white};font-size:11px;outline:none;font-family:Arial;">
+      <input id="aDue" type="date" value="${formData.dueDate}" oninput="formData.dueDate=this.value" style="background:${C.card};border:1px solid ${C.border};border-radius:3px;padding:7px 9px;color:${C.white};font-size:11px;outline:none;font-family:Arial;color-scheme:dark;">
+    </div>
+    <button onclick="addAction('${mid}')" style="padding:7px 16px;background:${C.green};color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:11px;font-weight:bold;font-family:Arial;">Save Action</button>
+  </div>`:'';
+  const filterBtns=['all','open','overdue','closed'].map(fv=>{
+    const active=f===fv;
+    const bg=active?(fv==='overdue'?C.red:fv==='closed'?C.green:fv==='open'?C.primary:meta.color):C.border;
+    return `<button onclick="setFilter('${mid}','${fv}')" style="padding:4px 11px;border-radius:3px;border:none;cursor:pointer;font-size:10px;font-family:Arial;font-weight:${active?'bold':'normal'};background:${bg};color:${active?'#fff':C.subText};">${fv.charAt(0).toUpperCase()+fv.slice(1)}</button>`;
+  }).join('');
+  const emptyMsg=acts.length===0?`<div style="text-align:center;padding:26px;color:${C.muted};font-size:11px;background:${C.card};border-radius:4px;border:1px dashed ${C.border};">${f==='all'?'No action items yet. Click "+ Add Action" to begin tracking.':'No '+f+' items.'}</div>`:'';
+  const actRows=acts.map(a=>{
+    const ov=isOverdue(a);const cl=a.status==='closed';
+    const ownerSpan=a.owner?`<span>👤 ${a.owner}</span>`:'';
+    const dueSpan=`<span id="date_${mid}_${a.id}" onclick="editActionDate('${mid}',${a.id})" style="color:${ov?C.red:cl?C.green:C.subText};cursor:pointer;" title="Click to edit date">${a.dueDate?`📅 ${a.dueDate}${ov?' &#x2014; OVERDUE':''}`:`<span style="color:${C.muted};font-style:italic;">+ add date</span>`}</span>`;
+    const closedSpan=cl?`<span style="color:${C.green};">✓ Closed ${a.closedAt?a.closedAt.slice(0,10):''}</span>`:'';
+    const closeBtn=!cl?`<button onclick="closeAction('${mid}',${a.id})" style="padding:4px 9px;background:${C.green};color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:10px;font-family:Arial;font-weight:bold;" title="Mark closed">✓</button>`:'';
+    return `<div style="display:flex;align-items:flex-start;gap:10px;padding:12px;border-radius:4px;margin-bottom:6px;background:${ov?C.red+'10':C.card};border:1px solid ${ov?C.red+'50':cl?C.green+'30':C.border};">
+      <div style="width:9px;height:9px;border-radius:2px;background:${ov?C.red:cl?C.green:C.primary};margin-top:4px;flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:bold;color:${cl?C.subText:C.white};text-decoration:${cl?'line-through':'none'};word-break:break-word;">${a.title}</div>
+        <div style="display:flex;gap:12px;margin-top:3px;font-size:10px;color:${C.subText};flex-wrap:wrap;">${ownerSpan}${dueSpan}${closedSpan}</div>
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0;">${closeBtn}${cl?`<button onclick="if(confirm('Permanently delete this action?'))deleteAction('${mid}',${a.id})" style="padding:4px 9px;background:${C.border};color:${C.subText};border:none;border-radius:3px;cursor:pointer;font-size:10px;font-family:Arial;" title="Delete permanently">✕</button>`:''}</div>
+    </div>`;
+  }).join('');
+  return `<div style="margin-top:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="font-size:9px;letter-spacing:2px;color:${C.primary};font-weight:bold;text-transform:uppercase;">Action Items</span>
+        ${openB}${ovB}${closedB}
+      </div>${addBtn}
+    </div>
+    ${addForm}
+    <div style="display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap;">${filterBtns}</div>
+    ${emptyMsg}${actRows}
+  </div>`;
+}
+
+function toggleItem(k){expandedItems[k]=!expandedItems[k];renderMain();}
+function setDept(d){activeDept=d;editingKpi=null;renderMain();}
+function setRag(dept,idx,r){const k=`${dept}_${idx}`;ragMap[k]=ragMap[k]===r?null:r;save();renderMain();}
+function setFilter(mid,f){filterFor[mid]=f;renderMain();}
+function toggleAddForm(mid){addingFor=addingFor===mid?null:mid;formData={title:'',owner:'',dueDate:''};renderMain();}
+function startEditKpi(key,name){editingKpi=key;renderMain();setTimeout(()=>{const el=document.getElementById('kpiInput');if(el){el.focus();el.value=name;}},50);}
+function handleKpiKey(e,key){if(e.key==='Enter')saveKpi(key);if(e.key==='Escape')cancelKpi();}
+function saveKpi(key){
+  const el=document.getElementById('kpiInput');
+  if(!el||!el.value.trim()){cancelKpi();return;}
+  const parts=key.split('_');const idx=parseInt(parts[parts.length-1]);const dept=parts.slice(0,-1).join('_');
+  const updated=[...(kpiNames[dept]||DEFAULT_KPIS[dept])];updated[idx]=el.value.trim();kpiNames[dept]=updated;
+  editingKpi=null;save();renderMain();
+}
+function cancelKpi(){editingKpi=null;renderMain();}
+function addAction(mid){
+  const t=document.getElementById('aTitle');const o=document.getElementById('aOwner');const d=document.getElementById('aDue');
+  if(!t||!t.value.trim())return;
+  const a={id:Date.now(),title:t.value.trim(),owner:o?o.value.trim():'',dueDate:d?d.value:'',status:'open',createdAt:new Date().toISOString()};
+  if(!actions[mid])actions[mid]=[];actions[mid].push(a);formData={title:'',owner:'',dueDate:''};addingFor=null;save();render();
+}
+function closeAction(mid,id){actions[mid]=actions[mid].map(a=>a.id===id?{...a,status:'closed',closedAt:new Date().toISOString()}:a);save();render();}
+function deleteAction(mid,id){actions[mid]=actions[mid].filter(a=>a.id!==id);save();render();}
+function editActionDate(mid,id){
+  const el=document.getElementById('date_'+mid+'_'+id);
+  if(!el)return;
+  const a=(actions[mid]||[]).find(a=>a.id===id);
+  if(!a)return;
+  el.innerHTML=`<input type="date" value="${a.dueDate||''}" onchange="saveActionDate('${mid}',${id},this.value)" onblur="saveActionDate('${mid}',${id},this.value)" style="background:transparent;border:none;border-bottom:1px solid ${C.primary};color:${C.white};font-size:10px;font-family:Arial;outline:none;cursor:pointer;color-scheme:dark;">`;
+  el.querySelector('input').focus();
+}
+function saveActionDate(mid,id,val){
+  const a=(actions[mid]||[]).find(a=>a.id===id);
+  if(!a)return;
+  a.dueDate=val;
+  save();render();
+}
+
+// ── KPI Results helpers ────────────────────────────────────────────────────────
+function deptId(d){return d.replace(/[^a-zA-Z0-9]/g,'_');}
+
+function calcRag(actual,target,dir){
+  const a=parseFloat(actual),t=parseFloat(target);
+  if(isNaN(a)||isNaN(t)||t===0||dir==='info')return null;
+  const ratio=a/t;
+  if(dir==='higher') return ratio>=0.9?'G':ratio>=0.75?'A':'R';
+  if(dir==='lower')  return ratio<=1.1?'G':ratio<=1.25?'A':'R';
+  return null;
+}
+
+function setPeriod(v){kpiPeriod=v;save();}
+function setResultsDept(d){activeResultsDept=d;renderMain();}
+
+function updateKpiActual(dept,idx){
+  const did=deptId(dept);
+  const tEl=document.getElementById('t_'+did+'_'+idx);
+  const aEl=document.getElementById('a_'+did+'_'+idx);
+  if(!tEl||!aEl)return;
+  const key=dept+'_'+idx;
+  kpiActuals[key]={target:tEl.value,actual:aEl.value};
+  const meta=(KPI_META[dept]||[])[idx]||{};
+  const rag=calcRag(aEl.value,tEl.value,meta.d);
+  const ragEl=document.getElementById('rag_'+did+'_'+idx);
+  if(ragEl){
+    if(rag){ragEl.style.background=RAG_COLORS[rag];ragEl.style.color='#fff';ragEl.textContent=rag;ragEl.style.opacity='1';}
+    else{ragEl.style.background=C.muted;ragEl.style.color=C.subText;ragEl.textContent='–';ragEl.style.opacity='0.4';}
+  }
+  if(rag)ragMap[key]=rag; else delete ragMap[key];
+  updateResultsSummary(dept);
+  save();
+}
+
+function updateResultsSummary(dept){
+  const did=deptId(dept);
+  const kpis=kpiNames[dept]||DEFAULT_KPIS[dept]||[];
+  const meta=KPI_META[dept]||[];
+  let g=0,a=0,r=0;
+  kpis.forEach((_,idx)=>{
+    const v=kpiActuals[dept+'_'+idx];
+    const m=meta[idx]||{};
+    if(v){const rag=calcRag(v.actual,v.target,m.d);if(rag==='G')g++;else if(rag==='A')a++;else if(rag==='R')r++;}
+  });
+  const el=document.getElementById('rsum_'+did);
+  if(el){
+    el.innerHTML=(g||a||r)
+      ?`<span style="color:${C.green};font-size:10px;font-weight:bold;">● ${g} Green</span>&nbsp;&nbsp;<span style="color:${C.amber};font-size:10px;font-weight:bold;">● ${a} Amber</span>&nbsp;&nbsp;<span style="color:${C.red};font-size:10px;font-weight:bold;">● ${r} Red</span>`
+      :`<span style="color:${C.muted};font-size:10px;">No data entered</span>`;
+  }
+}
+
+function renderKpiResults(){
+  const depts=Object.keys(DEFAULT_KPIS);
+  const kpis=kpiNames[activeResultsDept]||DEFAULT_KPIS[activeResultsDept]||[];
+  const meta=KPI_META[activeResultsDept]||[];
+  const did=deptId(activeResultsDept);
+
+  // Overall totals
+  let totG=0,totA=0,totR=0,totEntered=0;
+  depts.forEach(dep=>{
+    const kk=kpiNames[dep]||DEFAULT_KPIS[dep]||[];
+    const mm=KPI_META[dep]||[];
+    kk.forEach((_,i)=>{
+      const v=kpiActuals[dep+'_'+i];
+      if(v&&(v.target||v.actual)){
+        totEntered++;
+        const rag=calcRag(v.actual,v.target,(mm[i]||{}).d);
+        if(rag==='G')totG++;else if(rag==='A')totA++;else if(rag==='R')totR++;
+      }
+    });
+  });
+
+  // Dept tabs
+  const deptTabs=depts.map(dep=>{
+    const kk=kpiNames[dep]||DEFAULT_KPIS[dep]||[];
+    const mm=KPI_META[dep]||[];
+    let g=0,a=0,r=0;
+    kk.forEach((_,i)=>{
+      const v=kpiActuals[dep+'_'+i];
+      if(v){const rag=calcRag(v.actual,v.target,(mm[i]||{}).d);if(rag==='G')g++;else if(rag==='A')a++;else if(rag==='R')r++;}
+    });
+    const active=activeResultsDept===dep;
+    const dot=r>0?`<span style="font-size:8px;color:${C.red};margin-left:3px;">●</span>`:a>0?`<span style="font-size:8px;color:${C.amber};margin-left:3px;">●</span>`:g>0?`<span style="font-size:8px;color:${C.green};margin-left:3px;">●</span>`:'';
+    const border=r>0?C.red+'60':a>0?C.amber+'50':C.border;
+    return `<button onclick="setResultsDept('${dep.replace(/'/g,"\\'")}')" style="padding:5px 10px;border-radius:3px;border:1px solid ${border};cursor:pointer;font-size:10.5px;font-family:Arial;background:${active?C.primary:'transparent'};color:${active?C.white:C.subText};font-weight:${active?'bold':'normal'};">${dep}${dot}</button>`;
+  }).join('');
+
+  // KPI rows
+  const rows=kpis.map((name,idx)=>{
+    const m=meta[idx]||{};
+    const key=activeResultsDept+'_'+idx;
+    const saved=kpiActuals[key]||{};
+    const tVal=saved.target||'';
+    const aVal=saved.actual||'';
+    const rag=calcRag(aVal,tVal,m.d);
+    const dirLabel=m.d==='higher'
+      ?`<span title="Higher is better" style="color:${C.green};font-size:9px;font-weight:bold;">↑ Higher</span>`
+      :m.d==='lower'
+      ?`<span title="Lower is better" style="color:${C.lightest};font-size:9px;font-weight:bold;">↓ Lower</span>`
+      :`<span title="Informational" style="color:${C.muted};font-size:9px;">ℹ Info</span>`;
+    const ragBg=rag?RAG_COLORS[rag]:C.muted;
+    const ragColor=rag?'#fff':C.subText;
+    const ragText=rag||'–';
+    const ragOpacity=rag?'1':'0.4';
+    const inp=`background:${C.bg};border:1px solid ${C.border};border-radius:3px;padding:7px 10px;color:${C.white};font-size:12px;font-family:Arial;outline:none;width:100%;transition:border-color 0.15s;`;
+    return `<div style="display:grid;grid-template-columns:1fr 55px 140px 140px 46px;gap:8px;align-items:center;padding:11px 0;border-bottom:1px solid ${C.border}25;">
+      <div>
+        <div style="font-size:12px;color:${C.text};line-height:1.4;">${name}</div>
+        <div style="margin-top:3px;">${dirLabel}</div>
+      </div>
+      <div style="text-align:center;font-size:10px;color:${C.subText};">${m.u||'—'}</div>
+      <input type="number" id="t_${did}_${idx}" placeholder="Target" value="${tVal}"
+        oninput="updateKpiActual('${activeResultsDept.replace(/'/g,"\\'")}',${idx})"
+        onfocus="this.style.borderColor='${C.primary}'" onblur="this.style.borderColor='${C.border}'"
+        style="${inp}" step="any">
+      <input type="number" id="a_${did}_${idx}" placeholder="Actual" value="${aVal}"
+        oninput="updateKpiActual('${activeResultsDept.replace(/'/g,"\\'")}',${idx})"
+        onfocus="this.style.borderColor='${C.primary}'" onblur="this.style.borderColor='${C.border}'"
+        style="${inp}" step="any">
+      <div style="display:flex;justify-content:center;">
+        <div id="rag_${did}_${idx}" style="width:36px;height:36px;border-radius:4px;background:${ragBg};color:${ragColor};font-size:11px;font-weight:bold;opacity:${ragOpacity};display:flex;align-items:center;justify-content:center;letter-spacing:0.5px;">${ragText}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const overallBar=totEntered>0?`
+    <div style="background:${C.card};border:1px solid ${C.border};border-radius:4px;padding:12px 18px;margin-bottom:16px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+      <span style="font-size:9px;letter-spacing:2px;color:${C.primary};font-weight:bold;text-transform:uppercase;">Overall</span>
+      <span style="font-size:11px;color:${C.green};font-weight:bold;">● ${totG}&nbsp;Green</span>
+      <span style="font-size:11px;color:${C.amber};font-weight:bold;">● ${totA}&nbsp;Amber</span>
+      <span style="font-size:11px;color:${C.red};font-weight:bold;">● ${totR}&nbsp;Red</span>
+      <span style="font-size:10px;color:${C.muted};">${totEntered} of ${Object.values(DEFAULT_KPIS).reduce((s,v)=>s+v.length,0)} KPIs with data</span>
+    </div>`:
+    `<div style="background:${C.card};border:1px solid ${C.border};border-radius:4px;padding:12px 18px;margin-bottom:16px;font-size:11px;color:${C.muted};text-align:center;">
+      Select a department below and enter Target &amp; Actual values — RAG status will calculate automatically.
+    </div>`;
+
+  return `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="font-size:22px;font-weight:bold;color:${C.white};letter-spacing:0.5px;">KPI Results Entry</div>
+        <div style="font-size:9px;letter-spacing:2.5px;color:${C.subText};text-transform:uppercase;margin-top:2px;">Al Laith · Departmental Performance · Target vs Actual</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:10px;color:${C.subText};">Reporting Period</span>
+        <input type="month" value="${kpiPeriod}" onchange="setPeriod(this.value)"
+          style="background:${C.card};border:1px solid ${C.border};border-radius:3px;padding:5px 9px;color:${C.white};font-size:11px;font-family:Arial;outline:none;color-scheme:dark;">
+      </div>
+    </div>
+    <div style="width:44px;height:3px;background:${C.primary};border-radius:2px;margin-bottom:18px;"></div>
+
+    ${overallBar}
+
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px;">${deptTabs}</div>
+
+    <div style="background:${C.card};border:1px solid ${C.border};border-left:3px solid ${C.management};border-radius:4px;padding:18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:9px;letter-spacing:2px;color:${C.management};font-weight:bold;text-transform:uppercase;">${activeResultsDept}</div>
+        <div id="rsum_${did}" style="font-size:10px;"></div>
+      </div>
+      <div style="font-size:11px;color:${C.subText};margin-bottom:14px;">Enter a Target and Actual for each KPI. RAG is calculated automatically. &nbsp;↑ Higher is better &nbsp;·&nbsp; ↓ Lower is better &nbsp;·&nbsp; ℹ Informational</div>
+      <div style="display:grid;grid-template-columns:1fr 55px 140px 140px 46px;gap:8px;padding:6px 0;border-bottom:1px solid ${C.border};margin-bottom:2px;">
+        <div style="font-size:9px;color:${C.muted};font-weight:bold;letter-spacing:1px;text-transform:uppercase;">KPI</div>
+        <div style="font-size:9px;color:${C.muted};font-weight:bold;letter-spacing:1px;text-align:center;text-transform:uppercase;">Unit</div>
+        <div style="font-size:9px;color:${C.muted};font-weight:bold;letter-spacing:1px;text-transform:uppercase;">Target</div>
+        <div style="font-size:9px;color:${C.muted};font-weight:bold;letter-spacing:1px;text-transform:uppercase;">Actual</div>
+        <div style="font-size:9px;color:${C.muted};font-weight:bold;letter-spacing:1px;text-align:center;text-transform:uppercase;">RAG</div>
+      </div>
+      ${rows}
+      <div style="margin-top:14px;padding:9px 12px;background:${C.primary}15;border-radius:3px;font-size:10.5px;color:${C.subText};line-height:1.8;">
+        💡 <strong style="color:${C.text};">Auto RAG thresholds:</strong>
+        <span style="color:${C.green};">Green</span> = actual ≥ 90% of target &nbsp;·&nbsp;
+        <span style="color:${C.amber};">Amber</span> = 75–90% &nbsp;·&nbsp;
+        <span style="color:${C.red};">Red</span> = below 75%
+        &nbsp;(reversed for ↓ lower-is-better KPIs).
+        Results automatically update the <strong style="color:${C.management};">Mgmt &amp; Ops</strong> KPI dashboard.
+      </div>
+    </div>`;
+}
+
+render();
+</script>
+</body>
+</html>
