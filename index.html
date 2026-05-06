@@ -6,23 +6,23 @@
 <title>Al Laith · Meeting Framework</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: Arial, sans-serif; background: #0C172C; color: #E8EDF2; height: 100vh; overflow: hidden; display: flex; }
+  body { font-family: Arial, sans-serif; background: #F4F6F9; color: #1E2D3D; height: 100vh; overflow: hidden; display: flex; }
   button { font-family: Arial, sans-serif; }
   input  { font-family: Arial, sans-serif; }
   ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: #183057; }
+  ::-webkit-scrollbar-track { background: #E8EEF5; }
   ::-webkit-scrollbar-thumb { background: #0071B7; border-radius: 2px; }
 </style>
 </head>
 <body>
 
-<div id="sidebar" style="width:195px;min-width:195px;background:#183057;border-right:1px solid #253048;display:flex;flex-direction:column;overflow-y:auto;height:100vh;"></div>
+<div id="sidebar" style="width:195px;min-width:195px;background:#FFFFFF;border-right:1px solid #D0DCE8;display:flex;flex-direction:column;overflow-y:auto;height:100vh;"></div>
 <div id="main" style="flex:1;overflow:auto;padding:28px 32px;height:100vh;"></div>
 
 <script>
 const C = {
-  bg:'#0C172C', sidebar:'#183057', card:'#1A3560', cardHover:'#1F3D6E',
-  border:'#253048', muted:'#39537F', subText:'#A0A5B2', text:'#D4DDE8', white:'#FFFFFF',
+  bg:'#FFFFFF', sidebar:'#FFFFFF', card:'#FFFFFF', cardHover:'#EBF4FF',
+  border:'#D0DCE8', muted:'#8FA3BA', subText:'#5B7080', text:'#1E2D3D', white:'#FFFFFF',
   primary:'#0071B7', light:'#329FCD', lightest:'#63CFEE', dark:'#183057', darkest:'#000E25',
   exco:'#0071B7', management:'#329FCD', departmental:'#63CFEE',
   board:'#A0C4E8', project:'#39537F', oneonone:'#72BFDF',
@@ -349,16 +349,16 @@ function render(){renderSidebar();renderMain();}
 
 function renderSidebar(){
   const sb=document.getElementById('sidebar');
-  let html=`<div style="background:#0C172C;padding:20px 16px 16px;border-bottom:3px solid ${C.primary};">
-    <div style="font-size:8px;letter-spacing:3px;color:${C.subText};text-transform:uppercase;margin-bottom:6px;">AL LAITH</div>
-    <div style="font-size:15px;font-weight:bold;color:${C.white};letter-spacing:1px;line-height:1.3;">MEETING<br><span style="color:${C.primary};">FRAMEWORK</span></div>
-    <div style="margin-top:8px;font-size:8px;color:${C.subText};font-style:italic;letter-spacing:0.5px;">Whatever it takes.</div>
+  let html=`<div style="background:#1C2B47;padding:20px 16px 16px;border-bottom:3px solid ${C.primary};">
+    <div style="font-size:8px;letter-spacing:3px;color:rgba(255,255,255,0.65);text-transform:uppercase;margin-bottom:6px;">AL LAITH</div>
+    <div style="font-size:15px;font-weight:bold;color:#FFFFFF;letter-spacing:1px;line-height:1.3;">MEETING<br><span style="color:${C.lightest};">FRAMEWORK</span></div>
+    <div style="margin-top:8px;font-size:8px;color:rgba(255,255,255,0.65);font-style:italic;letter-spacing:0.5px;">Whatever it takes.</div>
   </div>`;
   TABS.forEach(t=>{
     const st=t.id!=='framework'?getStats(t.id):{overdue:0,open:0};
     const active=currentTab===t.id;
     const badge=st.overdue>0?`<span style="font-size:9px;background:${C.red};color:#fff;border-radius:8px;padding:1px 6px;font-weight:bold;">${st.overdue}</span>`:st.open>0?`<span style="font-size:9px;background:${C.primary}40;color:${C.lightest};border-radius:8px;padding:1px 6px;">${st.open}</span>`:'';
-    html+=`<button onclick="switchTab('${t.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 16px;cursor:pointer;font-size:11.5px;background:${active?C.primary+'25':'transparent'};border-left:3px solid ${active?t.color:'transparent'};border-top:none;border-right:none;border-bottom:none;color:${active?C.white:C.subText};width:100%;text-align:left;transition:background 0.15s;">
+    html+=`<button onclick="switchTab('${t.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 16px;cursor:pointer;font-size:11.5px;background:${active?C.primary+'18':'transparent'};border-left:3px solid ${active?t.color:'transparent'};border-top:none;border-right:none;border-bottom:none;color:${active?C.primary:C.subText};width:100%;text-align:left;transition:background 0.15s;">
       <span style="display:flex;align-items:center;gap:8px;"><span style="opacity:${active?1:0.5};">${t.icon}</span>${t.label}</span>${badge}</button>`;
   });
   html+=`<div style="padding:16px;border-top:1px solid ${C.border};margin-top:auto;">
@@ -388,7 +388,7 @@ function renderFramework(){
       <div onclick="switchTab('${m.id}')" onmouseenter="this.style.background='${C.cardHover}'" onmouseleave="this.style.background='${C.card}'" style="display:flex;align-items:center;gap:14px;background:${C.card};border:1px solid ${C.border};border-left:3px solid ${meta.color};border-radius:4px;padding:12px 14px;cursor:pointer;transition:background 0.2s;">
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap;">
-            <span style="font-size:13px;font-weight:bold;color:${C.white};">${meta.title}</span>
+            <span style="font-size:13px;font-weight:bold;color:${C.text};">${meta.title}</span>
             <span style="font-size:8px;letter-spacing:1.5px;color:${meta.color};background:${meta.color}20;padding:2px 8px;border-radius:8px;font-weight:bold;">${m.purpose}</span>
             ${ovBadge}
           </div>
@@ -414,14 +414,14 @@ function renderFramework(){
   return `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:10px;">
       <div>
-        <div style="font-size:22px;font-weight:bold;color:${C.white};letter-spacing:0.5px;">Meeting Framework</div>
+        <div style="font-size:22px;font-weight:bold;color:${C.text};letter-spacing:0.5px;">Meeting Framework</div>
         <div style="font-size:9px;letter-spacing:2.5px;color:${C.subText};text-transform:uppercase;margin-top:2px;">Al Laith · Governance Structure · Whatever it takes.</div>
       </div>
       <div style="background:${C.primary};color:${C.white};padding:7px 16px;border-radius:4px;font-size:10px;font-weight:bold;letter-spacing:1.5px;">AL LAITH</div>
     </div>
     <div style="width:44px;height:3px;background:${C.primary};border-radius:2px;margin-bottom:22px;"></div>
     <div style="background:${C.card};border:1px solid ${C.border};border-left:3px solid ${C.primary};border-radius:4px;padding:14px 18px;margin-bottom:20px;font-size:11.5px;color:${C.subText};line-height:1.8;">
-      A well-structured business runs <strong style="color:${C.white};">distinct meeting cadences</strong>, each with a clear purpose, frequency, and attendee list. This framework separates governance, strategy, operations, and execution — so the right conversations happen at the right level, every time. <strong style="color:${C.primary};">Click any meeting below</strong> to open its agenda and action tracker.
+      A well-structured business runs <strong style="color:${C.text};">distinct meeting cadences</strong>, each with a clear purpose, frequency, and attendee list. This framework separates governance, strategy, operations, and execution — so the right conversations happen at the right level, every time. <strong style="color:${C.primary};">Click any meeting below</strong> to open its agenda and action tracker.
     </div>
     ${rows}
     <div style="background:${C.card};border:1px solid ${C.border};border-radius:4px;padding:18px;margin-top:14px;">
@@ -438,7 +438,7 @@ function renderMeeting(mid){
     `<span style="padding:5px 12px;background:${meta.color}20;border:1px solid ${meta.color}50;border-radius:3px;font-size:10px;color:${meta.color};font-weight:bold;">👥 ${meta.att}</span>`,
   ].join('');
   return `
-    <div style="font-size:21px;font-weight:bold;color:${C.white};margin-bottom:4px;">${meta.title}</div>
+    <div style="font-size:21px;font-weight:bold;color:${C.text};margin-bottom:4px;">${meta.title}</div>
     <div style="width:36px;height:3px;background:${meta.color};border-radius:2px;margin-bottom:14px;"></div>
     <div style="display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap;">${badges}</div>
     ${mid==='management'?renderKpis():''}
@@ -462,7 +462,7 @@ function renderKpis(){
     if(editingKpi===key) return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:${idx<4?`1px solid ${C.border}`:'none'};">
       <div style="width:9px;height:9px;border-radius:2px;background:${rag?RAG_COLORS[rag]:C.muted};flex-shrink:0;"></div>
       <div style="flex:1;display:flex;gap:6px;">
-        <input id="kpiInput" value="${name.replace(/"/g,'&quot;')}" onkeydown="handleKpiKey(event,'${key}')" style="background:${C.bg};border:1px solid ${C.primary};border-radius:3px;padding:5px 8px;color:${C.white};font-size:11px;font-family:Arial;outline:none;flex:1;">
+        <input id="kpiInput" value="${name.replace(/"/g,'&quot;')}" onkeydown="handleKpiKey(event,'${key}')" style="background:${C.bg};border:1px solid ${C.primary};border-radius:3px;padding:5px 8px;color:${C.text};font-size:11px;font-family:Arial;outline:none;flex:1;">
         <button onclick="saveKpi('${key}')" style="padding:4px 10px;background:${C.primary};color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:11px;font-family:Arial;font-weight:bold;">Save</button>
         <button onclick="cancelKpi()" style="padding:4px 8px;background:${C.muted};color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:11px;font-family:Arial;">✕</button>
       </div>
@@ -481,7 +481,7 @@ function renderKpis(){
     <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px;">${deptTabs}</div>
     ${kpiRows}
     <div style="margin-top:12px;padding:9px 12px;background:${C.primary}15;border-radius:3px;font-size:10.5px;color:${C.subText};">
-      💡 <strong style="color:${C.text};">Customise:</strong> Click any KPI name to replace it with your own metric. Coloured squares flag Red/Amber metrics at a glance.
+      💡 <strong style="color:${C.primary};">Customise:</strong> Click any KPI name to replace it with your own metric. Coloured squares flag Red/Amber metrics at a glance.
     </div>
   </div>`;
 }
@@ -515,9 +515,9 @@ function renderActions(mid){
   const addBtn=`<button onclick="toggleAddForm('${mid}')" style="padding:7px 14px;background:${addingFor===mid?C.muted:C.primary};color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:11px;font-weight:bold;font-family:Arial;">${addingFor===mid?'✕ Cancel':'+ Add Action'}</button>`;
   const addForm=addingFor===mid?`<div style="background:${C.bg};border:1px solid ${C.primary}60;border-radius:4px;padding:14px;margin-bottom:12px;">
     <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:10px;">
-      <input id="aTitle" type="text" placeholder="Action item *" value="${formData.title}" oninput="formData.title=this.value" style="background:${C.card};border:1px solid ${C.border};border-radius:3px;padding:7px 9px;color:${C.white};font-size:11px;outline:none;font-family:Arial;">
-      <input id="aOwner" type="text" placeholder="Owner" value="${formData.owner}" oninput="formData.owner=this.value" style="background:${C.card};border:1px solid ${C.border};border-radius:3px;padding:7px 9px;color:${C.white};font-size:11px;outline:none;font-family:Arial;">
-      <input id="aDue" type="date" value="${formData.dueDate}" oninput="formData.dueDate=this.value" style="background:${C.card};border:1px solid ${C.border};border-radius:3px;padding:7px 9px;color:${C.white};font-size:11px;outline:none;font-family:Arial;color-scheme:dark;">
+      <input id="aTitle" type="text" placeholder="Action item *" value="${formData.title}" oninput="formData.title=this.value" style="background:${C.card};border:1px solid ${C.border};border-radius:3px;padding:7px 9px;color:${C.text};font-size:11px;outline:none;font-family:Arial;">
+      <input id="aOwner" type="text" placeholder="Owner" value="${formData.owner}" oninput="formData.owner=this.value" style="background:${C.card};border:1px solid ${C.border};border-radius:3px;padding:7px 9px;color:${C.text};font-size:11px;outline:none;font-family:Arial;">
+      <input id="aDue" type="date" value="${formData.dueDate}" oninput="formData.dueDate=this.value" style="background:${C.card};border:1px solid ${C.border};border-radius:3px;padding:7px 9px;color:${C.text};font-size:11px;outline:none;font-family:Arial;color-scheme:light;">
     </div>
     <button onclick="addAction('${mid}')" style="padding:7px 16px;background:${C.green};color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:11px;font-weight:bold;font-family:Arial;">Save Action</button>
   </div>`:'';
@@ -536,7 +536,7 @@ function renderActions(mid){
     return `<div style="display:flex;align-items:flex-start;gap:10px;padding:12px;border-radius:4px;margin-bottom:6px;background:${ov?C.red+'10':C.card};border:1px solid ${ov?C.red+'50':cl?C.green+'30':C.border};">
       <div style="width:9px;height:9px;border-radius:2px;background:${ov?C.red:cl?C.green:C.primary};margin-top:4px;flex-shrink:0;"></div>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:12px;font-weight:bold;color:${cl?C.subText:C.white};text-decoration:${cl?'line-through':'none'};word-break:break-word;">${a.title}</div>
+        <div style="font-size:12px;font-weight:bold;color:${cl?C.subText:C.text};text-decoration:${cl?'line-through':'none'};word-break:break-word;">${a.title}</div>
         <div style="display:flex;gap:12px;margin-top:3px;font-size:10px;color:${C.subText};flex-wrap:wrap;">${ownerSpan}${dueSpan}${closedSpan}</div>
       </div>
       <div style="display:flex;gap:4px;flex-shrink:0;">${closeBtn}${cl?`<button onclick="if(confirm('Permanently delete this action?'))deleteAction('${mid}',${a.id})" style="padding:4px 9px;background:${C.border};color:${C.subText};border:none;border-radius:3px;cursor:pointer;font-size:10px;font-family:Arial;" title="Delete permanently">✕</button>`:''}</div>
@@ -583,7 +583,7 @@ function editActionDate(mid,id){
   if(!el)return;
   const a=(actions[mid]||[]).find(a=>a.id===id);
   if(!a)return;
-  el.innerHTML=`<input type="date" value="${a.dueDate||''}" onchange="saveActionDate('${mid}',${id},this.value)" onblur="saveActionDate('${mid}',${id},this.value)" style="background:transparent;border:none;border-bottom:1px solid ${C.primary};color:${C.white};font-size:10px;font-family:Arial;outline:none;cursor:pointer;color-scheme:dark;">`;
+  el.innerHTML=`<input type="date" value="${a.dueDate||''}" onchange="saveActionDate('${mid}',${id},this.value)" onblur="saveActionDate('${mid}',${id},this.value)" style="background:transparent;border:none;border-bottom:1px solid ${C.primary};color:${C.text};font-size:10px;font-family:Arial;outline:none;cursor:pointer;color-scheme:light;">`;
   el.querySelector('input').focus();
 }
 function saveActionDate(mid,id,val){
@@ -698,7 +698,7 @@ function renderKpiResults(){
     const ragColor=rag?'#fff':C.subText;
     const ragText=rag||'–';
     const ragOpacity=rag?'1':'0.4';
-    const inp=`background:${C.bg};border:1px solid ${C.border};border-radius:3px;padding:7px 10px;color:${C.white};font-size:12px;font-family:Arial;outline:none;width:100%;transition:border-color 0.15s;`;
+    const inp=`background:${C.bg};border:1px solid ${C.border};border-radius:3px;padding:7px 10px;color:${C.text};font-size:12px;font-family:Arial;outline:none;width:100%;transition:border-color 0.15s;`;
     return `<div style="display:grid;grid-template-columns:1fr 55px 140px 140px 46px;gap:8px;align-items:center;padding:11px 0;border-bottom:1px solid ${C.border}25;">
       <div>
         <div style="font-size:12px;color:${C.text};line-height:1.4;">${name}</div>
@@ -734,13 +734,13 @@ function renderKpiResults(){
   return `
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:10px;">
       <div>
-        <div style="font-size:22px;font-weight:bold;color:${C.white};letter-spacing:0.5px;">KPI Results Entry</div>
+        <div style="font-size:22px;font-weight:bold;color:${C.text};letter-spacing:0.5px;">KPI Results Entry</div>
         <div style="font-size:9px;letter-spacing:2.5px;color:${C.subText};text-transform:uppercase;margin-top:2px;">Al Laith · Departmental Performance · Target vs Actual</div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         <span style="font-size:10px;color:${C.subText};">Reporting Period</span>
         <input type="month" value="${kpiPeriod}" onchange="setPeriod(this.value)"
-          style="background:${C.card};border:1px solid ${C.border};border-radius:3px;padding:5px 9px;color:${C.white};font-size:11px;font-family:Arial;outline:none;color-scheme:dark;">
+          style="background:${C.card};border:1px solid ${C.border};border-radius:3px;padding:5px 9px;color:${C.text};font-size:11px;font-family:Arial;outline:none;color-scheme:light;">
       </div>
     </div>
     <div style="width:44px;height:3px;background:${C.primary};border-radius:2px;margin-bottom:18px;"></div>
@@ -764,7 +764,7 @@ function renderKpiResults(){
       </div>
       ${rows}
       <div style="margin-top:14px;padding:9px 12px;background:${C.primary}15;border-radius:3px;font-size:10.5px;color:${C.subText};line-height:1.8;">
-        💡 <strong style="color:${C.text};">Auto RAG thresholds:</strong>
+        💡 <strong style="color:${C.primary};">Auto RAG thresholds:</strong>
         <span style="color:${C.green};">Green</span> = actual ≥ 90% of target &nbsp;·&nbsp;
         <span style="color:${C.amber};">Amber</span> = 75–90% &nbsp;·&nbsp;
         <span style="color:${C.red};">Red</span> = below 75%
