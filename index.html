@@ -230,6 +230,7 @@ const KPI_META = {
 
 let currentTab = 'framework';
 let actions    = {};
+let priorities = {};
 let ragMap     = {};
 let kpiNames   = JSON.parse(JSON.stringify(DEFAULT_KPIS));
 let expandedItems = {};
@@ -328,16 +329,36 @@ if (!actions.exco) actions.exco = [];
     if(pos===-1) actions.exco.push({...s}); else actions.exco.splice(pos,0,{...s});
   }
 });
+if (!actions.oneonone) actions.oneonone = [];
+[
+  // 1-on-1  14-May-2026  (Jason English / John Maddern)
+  {id:3001,title:'Implement Data System: Determine the best method to implement a structured data collection solution using platforms like WhatsApp links for submissions',owner:'John Maddern',dueDate:'',status:'open',createdAt:'2026-05-14T00:00:00.000Z'},
+  {id:3002,title:'Send YPO Example: Forward the picture illustrating the YPO link structure to John Maddern',owner:'Jason English',dueDate:'',status:'open',createdAt:'2026-05-14T00:00:00.000Z'},
+  {id:3003,title:'Draft Org Structure: Prepare initial thoughts outlining the organizational chart/structure; assess resource allocation; identify glaring gaps and blind spots',owner:'John Maddern',dueDate:'',status:'open',createdAt:'2026-05-14T00:00:00.000Z'},
+  {id:3004,title:'Forward KSA Data: Send the KSA business registration and tax pack to Jason English once received from contacts',owner:'John Maddern',dueDate:'',status:'open',createdAt:'2026-05-14T00:00:00.000Z'},
+  {id:3005,title:'Finalize EXCO Metrics: Update the original KPI dashboard document incorporating discussed metrics for all departments (HSE, Finance, IT, Commercial, Human Capital); share the revised draft for review',owner:'John Maddern',dueDate:'',status:'open',createdAt:'2026-05-14T00:00:00.000Z'},
+  {id:3006,title:'Input Metrics: Input 5 best guess engineering metrics for tracking purposes',owner:'John Maddern',dueDate:'',status:'open',createdAt:'2026-05-14T00:00:00.000Z'},
+  {id:3007,title:'Send Metrics: Send all discussed operational and engineering metrics list to John Maddern',owner:'Jason English',dueDate:'',status:'open',createdAt:'2026-05-14T00:00:00.000Z'},
+  {id:3008,title:'Create Dashboards: Work on creating necessary dashboards based on the defined metrics',owner:'John Maddern',dueDate:'',status:'open',createdAt:'2026-05-14T00:00:00.000Z'},
+  {id:3009,title:'Discuss Scaling: Ask Mike how the company would operationally handle building a second tank farm',owner:'Jason English',dueDate:'',status:'open',createdAt:'2026-05-14T00:00:00.000Z'},
+].forEach(s=>{
+  if(!actions.oneonone.some(a=>a.id===s.id)){
+    const pos=actions.oneonone.findIndex(a=>a.id>s.id);
+    if(pos===-1) actions.oneonone.push({...s}); else actions.oneonone.splice(pos,0,{...s});
+  }
+});
 save();
 try { const s=localStorage.getItem('al_mf_rag');if(s) ragMap=JSON.parse(s); } catch(e){}
 try { const s=localStorage.getItem('al_mf_kpi');if(s) kpiNames=JSON.parse(s); } catch(e){}
 try { const s=localStorage.getItem('al_mf_actuals');if(s){const p=JSON.parse(s);kpiActuals=p.data||{};if(p.period)kpiPeriod=p.period;} } catch(e){}
+try { const s=localStorage.getItem('al_mf_priorities');if(s) priorities=JSON.parse(s); } catch(e){}
 
 function save() {
   try{localStorage.setItem('al_mf_actions',JSON.stringify(actions));}catch(e){}
   try{localStorage.setItem('al_mf_rag',JSON.stringify(ragMap));}catch(e){}
   try{localStorage.setItem('al_mf_kpi',JSON.stringify(kpiNames));}catch(e){}
   try{localStorage.setItem('al_mf_actuals',JSON.stringify({period:kpiPeriod,data:kpiActuals}));}catch(e){}
+  try{localStorage.setItem('al_mf_priorities',JSON.stringify(priorities));}catch(e){}
 }
 
 const today=new Date(); today.setHours(0,0,0,0);
@@ -491,13 +512,18 @@ function renderAgenda(mid){
   const rows=agenda.map((item,i)=>{
     const key=`${mid}_a_${i}`;const open=expandedItems[key];
     const subs=open?item.items.map(s=>`<div style="font-size:11px;color:${C.subText};padding:3px 0 3px 12px;border-left:2px solid ${color}60;margin-top:4px;line-height:1.6;">— ${s}</div>`).join(''):'';
+    const prioritiesInline=open && mid==='oneonone' ? (
+      item.title==='Progress on Priorities' ? `<div style="margin-top:14px;">${renderPriorities(mid,'priorities','Priorities')}</div>` :
+      item.title==='Blockers & Support'      ? `<div style="margin-top:14px;">${renderPriorities(mid,'blockers','Blockers & Support')}</div>` :
+      item.title==='Development & Growth'    ? `<div style="margin-top:14px;">${renderPriorities(mid,'growth','Development & Growth')}</div>` : ''
+    ) : '';
     return `<div style="display:flex;gap:12px;padding:10px 0;border-bottom:${i<agenda.length-1?`1px solid ${C.border}`:'none'};">
       <div style="min-width:52px;font-size:10px;color:${color};font-weight:bold;padding-top:2px;">${item.time}</div>
       <div style="flex:1;">
         <div onclick="toggleItem('${key}')" style="font-size:12.5px;font-weight:bold;color:${C.text};cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
           <span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">${item.title}${item.owner?`<span style="font-size:10px;font-weight:normal;color:${C.muted};background:${C.border};padding:2px 8px;border-radius:8px;">${item.owner}</span>`:''}</span>
           <span style="color:${C.muted};font-size:10px;margin-left:8px;flex-shrink:0;">${open?'▲':'▼'}</span>
-        </div>${subs}
+        </div>${subs}${prioritiesInline}
       </div>
     </div>`;
   }).join('');
@@ -505,6 +531,41 @@ function renderAgenda(mid){
     <div style="font-size:9px;letter-spacing:2px;color:${color};margin-bottom:12px;font-weight:bold;text-transform:uppercase;">Agenda</div>
     ${rows}
   </div>`;
+}
+
+function renderPriorities(mid,sid,label){
+  const key=`${mid}|${sid}`;
+  const items=priorities[key]||[];
+  const color=META[mid].color;
+  const placeholder={priorities:'Add a priority…',blockers:'Add a blocker or support need…',growth:'Add a development or growth note…'}[sid]||'Add an item…';
+  const rows=items.map((p,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:${i<items.length-1?`1px solid ${C.border}`:'none'};">
+      <div style="min-width:22px;height:22px;border-radius:50%;background:${color};color:#fff;font-size:10px;font-weight:bold;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${i+1}</div>
+      <div style="flex:1;font-size:12.5px;color:${C.text};line-height:1.5;">${p}</div>
+      <button onclick="deletePriority('${key}',${i})" style="padding:2px 7px;background:transparent;color:${C.muted};border:1px solid ${C.border};border-radius:3px;cursor:pointer;font-size:10px;font-family:Arial;" title="Remove">✕</button>
+    </div>`).join('');
+  const empty=items.length===0?`<div style="padding:10px 0 4px;font-size:12px;color:${C.muted};">Nothing listed yet — add one below.</div>`:'';
+  return `
+    <div style="background:${C.card};border:1px solid ${C.border};border-left:3px solid ${color};border-radius:4px;padding:18px;margin-bottom:4px;">
+      <div style="font-size:9px;letter-spacing:2px;color:${color};margin-bottom:12px;font-weight:bold;text-transform:uppercase;">${label}</div>
+      ${empty}${rows}
+      <div style="display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid ${C.border};">
+        <input id="priority-input-${key}" placeholder="${placeholder}" onkeydown="if(event.key==='Enter')addPriority('${key}')" style="flex:1;background:${C.bg};border:1px solid ${C.border};border-radius:3px;padding:7px 10px;color:${C.text};font-size:12px;font-family:Arial;outline:none;">
+        <button onclick="addPriority('${key}')" style="padding:7px 16px;background:${color};color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:11px;font-family:Arial;font-weight:bold;">+ Add</button>
+      </div>
+    </div>`;
+}
+function addPriority(key){
+  const input=document.getElementById(`priority-input-${key}`);
+  if(!input||!input.value.trim()) return;
+  if(!priorities[key]) priorities[key]=[];
+  priorities[key].push(input.value.trim());
+  save();renderMain();
+}
+function deletePriority(key,idx){
+  if(!priorities[key]) return;
+  priorities[key].splice(idx,1);
+  save();renderMain();
 }
 
 function renderActions(mid){
@@ -532,7 +593,7 @@ function renderActions(mid){
     const ownerSpan=a.owner?`<span>👤 ${a.owner}</span>`:'';
     const dueSpan=`<span id="date_${mid}_${a.id}" onclick="editActionDate('${mid}',${a.id})" style="color:${ov?C.red:cl?C.green:C.subText};cursor:pointer;" title="Click to edit date">${a.dueDate?`📅 ${a.dueDate}${ov?' &#x2014; OVERDUE':''}`:`<span style="color:${C.muted};font-style:italic;">+ add date</span>`}</span>`;
     const closedSpan=cl?`<span style="color:${C.green};">✓ Closed ${a.closedAt?a.closedAt.slice(0,10):''}</span>`:'';
-    const closeBtn=!cl?`<button onclick="closeAction('${mid}',${a.id})" style="padding:4px 9px;background:${C.green};color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:10px;font-family:Arial;font-weight:bold;" title="Mark closed">✓</button>`:'';
+    const closeBtn=!cl?`<button onclick="closeAction('${mid}',${a.id})" style="padding:4px 9px;background:${C.green};color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:10px;font-family:Arial;font-weight:bold;" title="Mark closed">✓</button>`:`<button onclick="reopenAction('${mid}',${a.id})" style="padding:4px 9px;background:${C.amber};color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:10px;font-family:Arial;font-weight:bold;" title="Reopen">↩ Reopen</button>`;
     return `<div style="display:flex;align-items:flex-start;gap:10px;padding:12px;border-radius:4px;margin-bottom:6px;background:${ov?C.red+'10':C.card};border:1px solid ${ov?C.red+'50':cl?C.green+'30':C.border};">
       <div style="width:9px;height:9px;border-radius:2px;background:${ov?C.red:cl?C.green:C.primary};margin-top:4px;flex-shrink:0;"></div>
       <div style="flex:1;min-width:0;">
@@ -577,6 +638,7 @@ function addAction(mid){
   if(!actions[mid])actions[mid]=[];actions[mid].push(a);formData={title:'',owner:'',dueDate:''};addingFor=null;save();render();
 }
 function closeAction(mid,id){actions[mid]=actions[mid].map(a=>a.id===id?{...a,status:'closed',closedAt:new Date().toISOString()}:a);save();render();}
+function reopenAction(mid,id){actions[mid]=actions[mid].map(a=>a.id===id?{...a,status:'open',closedAt:undefined}:a);save();render();}
 function deleteAction(mid,id){actions[mid]=actions[mid].filter(a=>a.id!==id);save();render();}
 function editActionDate(mid,id){
   const el=document.getElementById('date_'+mid+'_'+id);
