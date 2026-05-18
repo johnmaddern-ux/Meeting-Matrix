@@ -37,7 +37,9 @@ const TABS = [
   {id:'kpiresults',   label:'KPI Results',      icon:'◎', color:C.management},
   {id:'project',      label:'Project Steering', icon:'◬', color:C.lightest},
   {id:'departmental', label:'Departmental',     icon:'◧', color:C.departmental},
-  {id:'oneonone',     label:'1-on-1s',          icon:'◉', color:C.oneonone},
+  {id:'oo_jason',   label:'Jason English',     icon:'◉', color:C.oneonone, pin:'JE', role:'CEO'},
+  {id:'oo_joe',     label:'Joe Prepok',        icon:'◉', color:C.oneonone, pin:'JP', role:'PA Ops Manager'},
+  {id:'oo_vincent', label:'Vincent Nibbering', icon:'◉', color:C.oneonone, pin:'VN', role:'SS Ops Manager'},
 ];
 
 const META = {
@@ -46,7 +48,9 @@ const META = {
   departmental: {color:C.departmental,freq:'Weekly',             dur:'45–60 min',  att:'Department Head + Team',    title:'Departmental / Team Meeting'},
   board:        {color:C.board,       freq:'Quarterly',          dur:'2–3 hours',  att:'Board Members + CEO · Google Meet',  title:'Board Meeting'},
   project:      {color:C.lightest,    freq:'Monthly (as req.)',  dur:'60 min',     att:'Project Owners + Sponsors', title:'Project Steering Committee'},
-  oneonone:     {color:C.oneonone,    freq:'Weekly / Bi-weekly', dur:'30–45 min',  att:'Manager + Direct Report',   title:'1-on-1 Meetings'},
+  oo_jason:   {color:C.oneonone, freq:'Weekly / Bi-weekly', dur:'30–45 min', att:'Jason English (CEO) · John Maddern',                  title:'1-on-1 · Jason English'},
+  oo_joe:     {color:C.oneonone, freq:'Weekly / Bi-weekly', dur:'30–45 min', att:'Joe Prepok (PA Ops Manager) · John Maddern',             title:'1-on-1 · Joe Prepok'},
+  oo_vincent: {color:C.oneonone, freq:'Weekly / Bi-weekly', dur:'30–45 min', att:'Vincent Nibbering (SS Ops Manager) · John Maddern',      title:'1-on-1 · Vincent Nibbering'},
 };
 
 const AGENDAS = {
@@ -162,12 +166,26 @@ const AGENDAS = {
     {title:'Decisions Required',       time:'10 min', items:['Scope changes requiring approval','Resource requests above PM authority']},
     {title:'Actions & Close',          time:'5 min',  items:['Actions with owners and dates','Next steering committee date']},
   ],
-  oneonone:[
-    {title:'Check-In',                 time:'5 min',  items:['What is your life score?']},
-    {title:'Progress on Priorities',   time:'10 min', items:["What got done last week?","What didn't — and why?"]},
-    {title:'Blockers & Support',       time:'10 min', items:["What's in the way?",'How can the manager help?']},
-    {title:'Development & Growth',     time:'10 min', items:['Career goals and skills development','Two-way feedback']},
-    {title:'Upcoming Focus',           time:'5 min',  items:['Top 3 priorities for next week','Upcoming decisions or concerns']},
+  oo_jason:[
+    {title:'Check-In',               time:'5 min',  items:['What is your life score?']},
+    {title:'Progress on Priorities', time:'10 min', items:["What got done last week?","What didn't — and why?"]},
+    {title:'Blockers & Support',     time:'10 min', items:["What's in the way?",'How can the manager help?']},
+    {title:'Development & Growth',   time:'10 min', items:['Career goals and skills development','Two-way feedback']},
+    {title:'Upcoming Focus',         time:'5 min',  items:['Top 3 priorities for next week','Upcoming decisions or concerns']},
+  ],
+  oo_joe:[
+    {title:'Check-In',               time:'5 min',  items:['What is your life score?']},
+    {title:'Progress on Priorities', time:'10 min', items:["What got done last week?","What didn't — and why?"]},
+    {title:'Blockers & Support',     time:'10 min', items:["What's in the way?",'How can the manager help?']},
+    {title:'Development & Growth',   time:'10 min', items:['Career goals and skills development','Two-way feedback']},
+    {title:'Upcoming Focus',         time:'5 min',  items:['Top 3 priorities for next week','Upcoming decisions or concerns']},
+  ],
+  oo_vincent:[
+    {title:'Check-In',               time:'5 min',  items:['What is your life score?']},
+    {title:'Progress on Priorities', time:'10 min', items:["What got done last week?","What didn't — and why?"]},
+    {title:'Blockers & Support',     time:'10 min', items:["What's in the way?",'How can the manager help?']},
+    {title:'Development & Growth',   time:'10 min', items:['Career goals and skills development','Two-way feedback']},
+    {title:'Upcoming Focus',         time:'5 min',  items:['Top 3 priorities for next week','Upcoming decisions or concerns']},
   ],
 };
 
@@ -200,7 +218,9 @@ const FRAMEWORK_MAP = [
   {id:'management',   level:2, purpose:'OPERATIONAL', desc:'Operational KPIs, cross-departmental issues, resource management'},
   {id:'project',      level:2, purpose:'OPERATIONAL', desc:'Specific project progress, decisions, budget and risk tracking'},
   {id:'departmental', level:3, purpose:'EXECUTION',   desc:'Team-level execution, weekly priorities, blockers'},
-  {id:'oneonone',     level:3, purpose:'EXECUTION',   desc:'Individual performance, coaching, personal development'},
+  {id:'oo_jason',   level:3, purpose:'EXECUTION', desc:'1-on-1 with Jason English — CEO'},
+  {id:'oo_joe',     level:3, purpose:'EXECUTION', desc:'1-on-1 with Joe Prepok — PA Operations Manager'},
+  {id:'oo_vincent', level:3, purpose:'EXECUTION', desc:'1-on-1 with Vincent Nibbering — SS Operations Manager'},
 ];
 
 const RAG_COLORS = {R:C.red, A:C.amber, G:C.green};
@@ -228,8 +248,9 @@ const KPI_META = {
   'Ops - SS KSA':      [{u:'AED',d:'higher'},{u:'AED',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'}],
 };
 
-let currentTab = 'framework';
-let actions    = {};
+let currentTab   = 'framework';
+let actions      = {};
+let unlockedTabs = {};
 let priorities = {};
 let ragMap     = {};
 let kpiNames   = JSON.parse(JSON.stringify(DEFAULT_KPIS));
@@ -243,7 +264,8 @@ let activeResultsDept = 'QHSE';
 let kpiActuals = {};
 let kpiPeriod  = new Date().toISOString().slice(0,7);
 
-try { const s=localStorage.getItem('al_mf_actions');if(s) actions=JSON.parse(s); } catch(e){}
+try { const s=localStorage.getItem('al_mf_actions');if(s){actions=JSON.parse(s);if(actions.oneonone&&!actions.oo_jason){actions.oo_jason=actions.oneonone;delete actions.oneonone;}}} catch(e){}
+try { const s=localStorage.getItem('al_mf_priorities');if(s){priorities=JSON.parse(s);['priorities','blockers','growth'].forEach(sid=>{const ok=`oneonone|${sid}`,nk=`oo_jason|${sid}`;if(priorities[ok]&&!priorities[nk]){priorities[nk]=priorities[ok];delete priorities[ok];}});}} catch(e){}
 if (!actions.board) actions.board = [];
 [
   {id:1001,title:'Finalise scenario-based financial model, including validation of assumptions and refinement of cash flow projections',owner:'Maddern / Clark / Cumming',dueDate:'2026-05-15',status:'open',createdAt:'2026-04-09T00:00:00.000Z'},
@@ -329,7 +351,7 @@ if (!actions.exco) actions.exco = [];
     if(pos===-1) actions.exco.push({...s}); else actions.exco.splice(pos,0,{...s});
   }
 });
-if (!actions.oneonone) actions.oneonone = [];
+if (!actions.oo_jason) actions.oo_jason = [];
 [
   // 1-on-1  14-May-2026  (Jason English / John Maddern)
   {id:3001,title:'Implement Data System: Determine the best method to implement a structured data collection solution using platforms like WhatsApp links for submissions',owner:'John Maddern',dueDate:'',status:'open',createdAt:'2026-05-14T00:00:00.000Z'},
@@ -342,16 +364,16 @@ if (!actions.oneonone) actions.oneonone = [];
   {id:3008,title:'Create Dashboards: Work on creating necessary dashboards based on the defined metrics',owner:'John Maddern',dueDate:'',status:'open',createdAt:'2026-05-14T00:00:00.000Z'},
   {id:3009,title:'Discuss Scaling: Ask Mike how the company would operationally handle building a second tank farm',owner:'Jason English',dueDate:'',status:'open',createdAt:'2026-05-14T00:00:00.000Z'},
 ].forEach(s=>{
-  if(!actions.oneonone.some(a=>a.id===s.id)){
-    const pos=actions.oneonone.findIndex(a=>a.id>s.id);
-    if(pos===-1) actions.oneonone.push({...s}); else actions.oneonone.splice(pos,0,{...s});
+  if(!actions.oo_jason.some(a=>a.id===s.id)){
+    const pos=actions.oo_jason.findIndex(a=>a.id>s.id);
+    if(pos===-1) actions.oo_jason.push({...s}); else actions.oo_jason.splice(pos,0,{...s});
   }
 });
 save();
 try { const s=localStorage.getItem('al_mf_rag');if(s) ragMap=JSON.parse(s); } catch(e){}
 try { const s=localStorage.getItem('al_mf_kpi');if(s) kpiNames=JSON.parse(s); } catch(e){}
 try { const s=localStorage.getItem('al_mf_actuals');if(s){const p=JSON.parse(s);kpiActuals=p.data||{};if(p.period)kpiPeriod=p.period;} } catch(e){}
-try { const s=localStorage.getItem('al_mf_priorities');if(s) priorities=JSON.parse(s); } catch(e){}
+// priorities loaded with migration above
 
 function save() {
   try{localStorage.setItem('al_mf_actions',JSON.stringify(actions));}catch(e){}
@@ -375,12 +397,20 @@ function renderSidebar(){
     <div style="font-size:15px;font-weight:bold;color:#FFFFFF;letter-spacing:1px;line-height:1.3;">MEETING<br><span style="color:${C.lightest};">FRAMEWORK</span></div>
     <div style="margin-top:8px;font-size:8px;color:rgba(255,255,255,0.65);font-style:italic;letter-spacing:0.5px;">Whatever it takes.</div>
   </div>`;
+  let ooHeaderShown=false;
   TABS.forEach(t=>{
     const st=t.id!=='framework'?getStats(t.id):{overdue:0,open:0};
     const active=currentTab===t.id;
-    const badge=st.overdue>0?`<span style="font-size:9px;background:${C.red};color:#fff;border-radius:8px;padding:1px 6px;font-weight:bold;">${st.overdue}</span>`:st.open>0?`<span style="font-size:9px;background:${C.primary}40;color:${C.lightest};border-radius:8px;padding:1px 6px;">${st.open}</span>`:'';
-    html+=`<button onclick="switchTab('${t.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 16px;cursor:pointer;font-size:11.5px;background:${active?C.primary+'18':'transparent'};border-left:3px solid ${active?t.color:'transparent'};border-top:none;border-right:none;border-bottom:none;color:${active?C.primary:C.subText};width:100%;text-align:left;transition:background 0.15s;">
-      <span style="display:flex;align-items:center;gap:8px;"><span style="opacity:${active?1:0.5};">${t.icon}</span>${t.label}</span>${badge}</button>`;
+    const locked=t.pin&&!unlockedTabs[t.id];
+    if(t.id.startsWith('oo_')&&!ooHeaderShown){
+      ooHeaderShown=true;
+      html+=`<div style="padding:8px 16px 3px;font-size:8px;letter-spacing:2px;color:${C.muted};text-transform:uppercase;font-weight:bold;border-top:1px solid ${C.border};margin-top:4px;">1-on-1s</div>`;
+    }
+    const lockIcon=locked?`<span style="font-size:10px;opacity:0.5;">&#128274;</span>`:'';
+    const badge=locked?'':st.overdue>0?`<span style="font-size:9px;background:${C.red};color:#fff;border-radius:8px;padding:1px 6px;font-weight:bold;">${st.overdue}</span>`:st.open>0?`<span style="font-size:9px;background:${C.primary}40;color:${C.lightest};border-radius:8px;padding:1px 6px;">${st.open}</span>`:'';
+    const roleLabel=t.role?`<div style="font-size:8.5px;color:${C.muted};padding-left:20px;margin-top:1px;">${t.role}</div>`:'';
+    html+=`<button onclick="switchTab('${t.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:9px 16px;cursor:pointer;font-size:11.5px;background:${active?C.primary+'18':'transparent'};border-left:3px solid ${active?t.color:'transparent'};border-top:none;border-right:none;border-bottom:none;color:${active?C.primary:C.subText};width:100%;text-align:left;transition:background 0.15s;">
+      <span style="display:flex;flex-direction:column;"><span style="display:flex;align-items:center;gap:8px;"><span style="opacity:${active?1:0.5};">${t.icon}</span>${t.label}</span>${roleLabel}</span><span style="display:flex;align-items:center;gap:4px;">${lockIcon}${badge}</span></button>`;
   });
   html+=`<div style="padding:16px;border-top:1px solid ${C.border};margin-top:auto;">
     <div style="font-size:9px;color:${C.muted};text-align:center;line-height:1.8;">
@@ -391,7 +421,41 @@ function renderSidebar(){
   sb.innerHTML=html;
 }
 
-function switchTab(id){currentTab=id;addingFor=null;render();}
+function switchTab(id){
+  const tab=TABS.find(t=>t.id===id);
+  if(tab&&tab.pin&&!unlockedTabs[id]){showPinModal(id,tab.pin,tab.label);return;}
+  currentTab=id;addingFor=null;render();
+}
+function showPinModal(id,pin,label){
+  const existing=document.getElementById('pin-overlay');if(existing)existing.remove();
+  const ov=document.createElement('div');
+  ov.id='pin-overlay';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:1000;';
+  ov.innerHTML=`<div style="background:#fff;border-radius:8px;padding:30px 32px;width:300px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.25);">
+    <div style="font-size:22px;margin-bottom:8px;">&#128274;</div>
+    <div style="font-size:14px;font-weight:bold;color:${C.text};margin-bottom:4px;">${label}</div>
+    <div style="font-size:11px;color:${C.muted};margin-bottom:20px;">Enter PIN to access this 1-on-1</div>
+    <input id="pin-input" type="password" placeholder="PIN" maxlength="10" style="width:100%;border:1px solid ${C.border};border-radius:4px;padding:10px;font-size:16px;text-align:center;outline:none;font-family:Arial;letter-spacing:6px;">
+    <div id="pin-error" style="height:14px;font-size:10px;color:${C.red};margin-top:6px;"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button onclick="closePinModal()" style="flex:1;padding:10px;border:1px solid ${C.border};border-radius:4px;background:#fff;color:${C.subText};cursor:pointer;font-family:Arial;font-size:12px;">Cancel</button>
+      <button onclick="submitPin('${id}','${pin}')" style="flex:1;padding:10px;border:none;border-radius:4px;background:${C.primary};color:#fff;cursor:pointer;font-family:Arial;font-size:12px;font-weight:bold;">Unlock</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  const inp=document.getElementById('pin-input');
+  if(inp){inp.focus();inp.addEventListener('keydown',e=>{if(e.key==='Enter')submitPin(id,pin);});}
+}
+function closePinModal(){const el=document.getElementById('pin-overlay');if(el)el.remove();}
+function submitPin(id,correctPin){
+  const inp=document.getElementById('pin-input');if(!inp)return;
+  if(inp.value===correctPin){
+    unlockedTabs[id]=true;closePinModal();currentTab=id;addingFor=null;render();
+  } else {
+    const err=document.getElementById('pin-error');if(err)err.textContent='Incorrect PIN — try again';
+    inp.value='';inp.focus();
+  }
+}
 
 function renderMain(){
   const el=document.getElementById('main');
@@ -512,7 +576,7 @@ function renderAgenda(mid){
   const rows=agenda.map((item,i)=>{
     const key=`${mid}_a_${i}`;const open=expandedItems[key];
     const subs=open?item.items.map(s=>`<div style="font-size:11px;color:${C.subText};padding:3px 0 3px 12px;border-left:2px solid ${color}60;margin-top:4px;line-height:1.6;">— ${s}</div>`).join(''):'';
-    const prioritiesInline=open && mid==='oneonone' ? (
+    const prioritiesInline=open && mid.startsWith('oo_') ? (
       item.title==='Progress on Priorities' ? `<div style="margin-top:14px;">${renderPriorities(mid,'priorities','Priorities')}</div>` :
       item.title==='Blockers & Support'      ? `<div style="margin-top:14px;">${renderPriorities(mid,'blockers','Blockers & Support')}</div>` :
       item.title==='Development & Growth'    ? `<div style="margin-top:14px;">${renderPriorities(mid,'growth','Development & Growth')}</div>` : ''
