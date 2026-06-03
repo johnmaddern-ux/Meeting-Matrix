@@ -258,6 +258,21 @@ const KPI_META = {
   'Ops - SS KSA':      [{u:'AED',d:'higher'},{u:'AED',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'},{u:'%',d:'higher'}],
 };
 
+const OKR_GOALS = [
+  { id:'financial_growth',       label:'Financial Growth',
+    measures:['Record revenue and EBITDA'] },
+  { id:'market_expansion',       label:'Market Expansion',
+    measures:['Each Business Unit has entered at least one new geography','Each Business Unit has entered at least one new industry segment','5 new customers per Business Unit'] },
+  { id:'product_innovation',     label:'Product & Service Innovation',
+    measures:['5% of margin-enhancing revenue from new products','5% of margin-enhancing revenue from new services','1 new product offering from each Business Unit','1 new service offering from each Business Unit'] },
+  { id:'talent_depth',           label:'Increase Depth of Talent',
+    measures:['All key roles have a successor in place','No work declined due to lack of people resources','Improved skillsets across all IFL (OROS)','Improved skillsets across all DFL (OROS)'] },
+  { id:'operational_efficiency', label:'Improved Operational Efficiency',
+    measures:['Dashboard with correct metrics to measure efficiency','Live visibility of stock management','100% utilisation of Google Workspace','AI implemented across 20% of our business','New products to reduce manhours and increase work performance'] },
+  { id:'business_restructure',   label:'Business Restructure',
+    measures:['Simplified and Tax Efficient Business Structure'] },
+];
+
 let currentTab   = 'framework';
 let actions      = {};
 let unlockedTabs = {};
@@ -265,6 +280,8 @@ let priorities = {};
 let ragMap     = {};
 let kpiNames   = JSON.parse(JSON.stringify(DEFAULT_KPIS));
 let expandedItems = {};
+let expandedOKRs  = {};
+let okrData       = {};
 let addingFor  = null;
 let filterFor  = {};
 let activeDept = 'QHSE';
@@ -383,6 +400,7 @@ save();
 try { const s=localStorage.getItem('al_mf_rag');if(s) ragMap=JSON.parse(s); } catch(e){}
 try { const s=localStorage.getItem('al_mf_kpi');if(s) kpiNames=JSON.parse(s); } catch(e){}
 try { const s=localStorage.getItem('al_mf_actuals');if(s){const p=JSON.parse(s);kpiActuals=p.data||{};if(p.period)kpiPeriod=p.period;} } catch(e){}
+try { const s=localStorage.getItem('al_mf_okr');if(s) okrData=JSON.parse(s); } catch(e){}
 // priorities loaded with migration above
 
 function save() {
@@ -391,6 +409,7 @@ function save() {
   try{localStorage.setItem('al_mf_kpi',JSON.stringify(kpiNames));}catch(e){}
   try{localStorage.setItem('al_mf_actuals',JSON.stringify({period:kpiPeriod,data:kpiActuals}));}catch(e){}
   try{localStorage.setItem('al_mf_priorities',JSON.stringify(priorities));}catch(e){}
+  try{localStorage.setItem('al_mf_okr',JSON.stringify(okrData));}catch(e){}
 }
 
 const today=new Date(); today.setHours(0,0,0,0);
@@ -597,13 +616,15 @@ function renderAgenda(mid){
       item.title==='Development & Growth'    ? `<div style="margin-top:14px;">${renderPriorities(mid,'growth','Development & Growth')}</div>` :
       item.title==='Upcoming Focus'          ? `<div style="margin-top:14px;">${renderPriorities(mid,'focus','Upcoming Focus')}</div>` : ''
     ) : '';
+    const okrInline=open && mid==='exco' && item.title==='Strategic OKR Review'
+      ? `<div style="margin-top:14px;">${renderExcoOKRs()}</div>` : '';
     return `<div style="display:flex;gap:12px;padding:10px 0;border-bottom:${i<agenda.length-1?`1px solid ${C.border}`:'none'};">
       <div style="min-width:52px;font-size:10px;color:${color};font-weight:bold;padding-top:2px;">${item.time}</div>
       <div style="flex:1;">
         <div onclick="toggleItem('${key}')" style="font-size:12.5px;font-weight:bold;color:${C.text};cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
           <span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">${item.title}${item.owner?`<span style="font-size:10px;font-weight:normal;color:${C.muted};background:${C.border};padding:2px 8px;border-radius:8px;">${item.owner}</span>`:''}</span>
           <span style="color:${C.muted};font-size:10px;margin-left:8px;flex-shrink:0;">${open?'▲':'▼'}</span>
-        </div>${subs}${prioritiesInline}
+        </div>${subs}${prioritiesInline}${okrInline}
       </div>
     </div>`;
   }).join('');
@@ -647,6 +668,53 @@ function deletePriority(key,idx){
   priorities[key].splice(idx,1);
   save();renderMain();
 }
+
+function renderExcoOKRs(){
+  const color=C.exco;
+  const goalCards=OKR_GOALS.map(goal=>{
+    const open=expandedOKRs[goal.id];
+    const rags=goal.measures.map((_,i)=>(okrData[`${goal.id}_${i}`]||{}).rag);
+    const hasR=rags.some(r=>r==='R'),hasA=rags.some(r=>r==='A'),hasG=rags.some(r=>r==='G');
+    const sc=hasR?C.red:hasA?C.amber:hasG?C.green:C.muted;
+    const sl=hasR?'R':hasA?'A':hasG?'G':'–';
+    const rows=!open?'':goal.measures.map((m,i)=>{
+      const k=`${goal.id}_${i}`;const d=okrData[k]||{};const rag=d.rag;
+      const ragBtns=['R','A','G'].map(r=>`<button onclick="setOkrRag('${k}','${r}')" style="width:24px;height:24px;border-radius:3px;border:none;cursor:pointer;font-size:9px;font-weight:bold;font-family:Arial;background:${rag===r?RAG_COLORS[r]:RAG_COLORS[r]+'30'};color:${rag===r?'#fff':RAG_COLORS[r]};">${r}</button>`).join('');
+      return `<div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid ${C.border};">
+        <div style="font-size:11px;color:${C.text};line-height:1.5;">${m}</div>
+        <input value="${(d.target||'').replace(/"/g,'&quot;')}" onblur="saveOkr('${k}','target',this.value)" placeholder="Target…" style="background:${C.bg};border:1px solid ${C.border};border-radius:3px;padding:5px 8px;font-size:11px;font-family:Arial;color:${C.text};outline:none;width:100%;">
+        <input value="${(d.actual||'').replace(/"/g,'&quot;')}" onblur="saveOkr('${k}','actual',this.value)" placeholder="Actual…" style="background:${C.bg};border:1px solid ${C.border};border-radius:3px;padding:5px 8px;font-size:11px;font-family:Arial;color:${C.text};outline:none;width:100%;">
+        <div style="display:flex;gap:3px;flex-shrink:0;">${ragBtns}</div>
+      </div>`;
+    }).join('');
+    return `<div style="border:1px solid ${C.border};border-radius:4px;margin-bottom:8px;overflow:hidden;">
+      <div onclick="toggleOKR('${goal.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;background:${open?C.primary+'10':'#fff'};">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="min-width:22px;height:22px;border-radius:3px;background:${sc};color:#fff;font-size:9px;font-weight:bold;display:flex;align-items:center;justify-content:center;">${sl}</div>
+          <span style="font-size:12.5px;font-weight:bold;color:${C.text};">${goal.label}</span>
+          <span style="font-size:10px;color:${C.muted};">${goal.measures.length} measurable${goal.measures.length>1?'s':''}</span>
+        </div>
+        <span style="color:${C.muted};font-size:10px;">${open?'▲':'▼'}</span>
+      </div>
+      ${open?`<div style="padding:0 14px 12px;">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;padding:6px 0;border-bottom:2px solid ${C.border};margin-bottom:2px;">
+          <div style="font-size:9px;font-weight:bold;color:${C.muted};letter-spacing:1px;text-transform:uppercase;">Measurable</div>
+          <div style="font-size:9px;font-weight:bold;color:${C.muted};letter-spacing:1px;text-transform:uppercase;">Target</div>
+          <div style="font-size:9px;font-weight:bold;color:${C.muted};letter-spacing:1px;text-transform:uppercase;">Actual</div>
+          <div style="font-size:9px;font-weight:bold;color:${C.muted};letter-spacing:1px;text-transform:uppercase;">RAG</div>
+        </div>${rows}
+      </div>`:''}
+    </div>`;
+  }).join('');
+  return `<div style="background:${C.card};border:1px solid ${C.border};border-left:3px solid ${color};border-radius:4px;padding:18px;margin-bottom:4px;">
+    <div style="font-size:9px;letter-spacing:2px;color:${color};margin-bottom:4px;font-weight:bold;text-transform:uppercase;">Strategic OKRs</div>
+    <div style="font-size:11px;color:${C.subText};margin-bottom:14px;">Click a goal to expand. Enter targets and actuals, then set RAG status per measurable.</div>
+    ${goalCards}
+  </div>`;
+}
+function toggleOKR(id){expandedOKRs[id]=!expandedOKRs[id];renderMain();}
+function saveOkr(k,field,val){if(!okrData[k])okrData[k]={};okrData[k][field]=val;save();}
+function setOkrRag(k,r){if(!okrData[k])okrData[k]={};okrData[k].rag=okrData[k].rag===r?null:r;save();renderMain();}
 
 function renderActions(mid){
   const meta=META[mid];const st=getStats(mid);const acts=getFiltered(mid);const f=filterFor[mid]||'all';
