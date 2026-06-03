@@ -259,18 +259,69 @@ const KPI_META = {
 };
 
 const OKR_GOALS = [
-  { id:'financial_growth',       label:'Financial Growth',
-    measures:['Record revenue and EBITDA'] },
-  { id:'market_expansion',       label:'Market Expansion',
-    measures:['Each Business Unit has entered at least one new geography','Each Business Unit has entered at least one new industry segment','5 new customers per Business Unit'] },
-  { id:'product_innovation',     label:'Product & Service Innovation',
-    measures:['5% of margin-enhancing revenue from new products','5% of margin-enhancing revenue from new services','1 new product offering from each Business Unit','1 new service offering from each Business Unit'] },
-  { id:'talent_depth',           label:'Increase Depth of Talent',
-    measures:['All key roles have a successor in place','No work declined due to lack of people resources','Improved skillsets across all IFL (OROS)','Improved skillsets across all DFL (OROS)'] },
+  { id:'financial_growth', label:'Financial Growth',
+    measures:['Record revenue and EBITDA'],
+    activities:[
+      'Develop a hit list of clients to visit and allocate an owner',
+      'Develop touchpoint template and measurement metrics',
+      'Touchpoints with each client by 30 Aug 2024',
+      'Positive cashflow and collections monthly',
+    ]
+  },
+  { id:'market_expansion', label:'Market Expansion',
+    measures:['Each Business Unit has entered at least one new geography','Each Business Unit has entered at least one new industry segment','5 new customers per Business Unit'],
+    activities:[
+      'Develop strategy per sector for each Business Unit by 30 May 2024',
+      'Develop strategy per region for each Business Unit by 30 May 2024',
+      'Define key projects / clients that need to be targeted by 30 Jun 2024',
+      'Recruit BD Manager by 30 May 2024',
+    ]
+  },
+  { id:'product_innovation', label:'Product & Service Innovation',
+    measures:['5% of margin-enhancing revenue from new products','5% of margin-enhancing revenue from new services','1 new product offering from each Business Unit','1 new service offering from each Business Unit'],
+    activities:[
+      'Hold at least 1 idea JAM session by 30 May 2024',
+      'Develop a list by division of key products to be launched (50% sustainable) by 15 Jun',
+      'Develop a list by division of key services to be launched by 15 Jun',
+      'Launch Lion Cart by 30 Aug 2024',
+      'Identify at least 1 company for acquisition',
+    ]
+  },
+  { id:'talent_depth', label:'Increase Depth of Talent',
+    measures:['All key roles have a successor in place','No work declined due to lack of people resources','Improved skillsets across all IFL (OROS)','Improved skillsets across all DFL (OROS)'],
+    activities:[
+      'Job descriptions in place for all IFL personnel by 30 June 2024',
+      'KPIs to be developed for all IFL by 30 June 2024',
+      'KPIs to be signed off with all IFL by 30 July 2024',
+      'Key roles identified by 30 May 2024',
+      'Succession plan in place for key personnel by 30 June 2024',
+      '100% of PMs to attend PM training by 30 Aug 2024',
+      'Revised onboarding process to be conducted with each department by 30 Jul',
+    ]
+  },
   { id:'operational_efficiency', label:'Improved Operational Efficiency',
-    measures:['Dashboard with correct metrics to measure efficiency','Live visibility of stock management','100% utilisation of Google Workspace','AI implemented across 20% of our business','New products to reduce manhours and increase work performance'] },
-  { id:'business_restructure',   label:'Business Restructure',
-    measures:['Simplified and Tax Efficient Business Structure'] },
+    measures:['Dashboard with correct metrics to measure efficiency','Live visibility of stock management','100% utilisation of Google Workspace','AI implemented across 20% of our business','New products to reduce manhours and increase work performance'],
+    activities:[
+      'Identify key operational bottlenecks within each department and operational unit by 30 May 2024',
+      'Develop a strategy document to remove the bottlenecks by 30 June 2024',
+      'Provide draft efficiency dashboard for review by 31 July 2024',
+      '100% of company documents in Google format by 31 Dec 2024',
+      'Files moved from personal drives to shared drives by 30 Aug 2024',
+      'Idea JAM on stock management solution by 30 June 2024',
+      'Develop an AI strategy that enables machine learning of Al Laith processes and documents',
+    ]
+  },
+  { id:'business_restructure', label:'Business Restructure',
+    measures:['Simplified and Tax Efficient Business Structure'],
+    activities:[
+      'ALGI to be changed to 100% CG Tech Holdings',
+      'ALPS to be changed to 100% ALGI',
+      'ALSS to be changed to 100% ALGI',
+      'ALC Abu Dhabi to be changed to ALGI 49% / HAB 51%',
+      'AL Oman to be changed to ALGI 70% / Salim 30%',
+      'AL United to be changed to ALGI 70% / GCI Investments 30%',
+    ]
+  },
 ];
 
 let currentTab   = 'framework';
@@ -697,12 +748,23 @@ function renderExcoOKRs(){
         <span style="color:${C.muted};font-size:10px;">${open?'▲':'▼'}</span>
       </div>
       ${open?`<div style="padding:0 14px 12px;">
+        <div style="font-size:9px;font-weight:bold;color:${C.muted};letter-spacing:1px;text-transform:uppercase;padding:10px 0 6px;">Measurables</div>
         <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;padding:6px 0;border-bottom:2px solid ${C.border};margin-bottom:2px;">
-          <div style="font-size:9px;font-weight:bold;color:${C.muted};letter-spacing:1px;text-transform:uppercase;">Measurable</div>
+          <div style="font-size:9px;font-weight:bold;color:${C.muted};letter-spacing:1px;text-transform:uppercase;">What does success look like?</div>
           <div style="font-size:9px;font-weight:bold;color:${C.muted};letter-spacing:1px;text-transform:uppercase;">Target</div>
           <div style="font-size:9px;font-weight:bold;color:${C.muted};letter-spacing:1px;text-transform:uppercase;">Actual</div>
           <div style="font-size:9px;font-weight:bold;color:${C.muted};letter-spacing:1px;text-transform:uppercase;">RAG</div>
         </div>${rows}
+        <div style="font-size:9px;font-weight:bold;color:${C.muted};letter-spacing:1px;text-transform:uppercase;padding:14px 0 8px;border-top:1px solid ${C.border};margin-top:4px;">Key Activities</div>
+        ${goal.activities.map((act,ai)=>{
+          const ak=`${goal.id}_act_${ai}`;const done=!!(okrData[ak]||{}).done;
+          return `<div style="display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid ${C.border+'80'};">
+            <button onclick="toggleOkrActivity('${ak}')" style="min-width:18px;height:18px;border-radius:3px;border:1px solid ${done?C.green:C.border};background:${done?C.green:'transparent'};cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+              ${done?`<span style="color:#fff;font-size:10px;font-weight:bold;">✓</span>`:''}
+            </button>
+            <span style="font-size:11px;color:${done?C.muted:C.text};text-decoration:${done?'line-through':'none'};line-height:1.5;">${act}</span>
+          </div>`;
+        }).join('')}
       </div>`:''}
     </div>`;
   }).join('');
@@ -715,6 +777,7 @@ function renderExcoOKRs(){
 function toggleOKR(id){expandedOKRs[id]=!expandedOKRs[id];renderMain();}
 function saveOkr(k,field,val){if(!okrData[k])okrData[k]={};okrData[k][field]=val;save();}
 function setOkrRag(k,r){if(!okrData[k])okrData[k]={};okrData[k].rag=okrData[k].rag===r?null:r;save();renderMain();}
+function toggleOkrActivity(k){if(!okrData[k])okrData[k]={};okrData[k].done=!okrData[k].done;save();renderMain();}
 
 function renderActions(mid){
   const meta=META[mid];const st=getStats(mid);const acts=getFiltered(mid);const f=filterFor[mid]||'all';
