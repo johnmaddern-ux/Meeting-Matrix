@@ -40,6 +40,7 @@ const TABS = [
   {id:'oo_jason',   label:'Jason English',     icon:'◉', color:C.oneonone, pin:'JE', role:'CEO'},
   {id:'oo_joe',     label:'Joe Prepok',        icon:'◉', color:C.oneonone, pin:'JP', role:'PA Ops Manager'},
   {id:'oo_vincent', label:'Vincent Nibbering', icon:'◉', color:C.oneonone, pin:'VN', role:'SS Ops Manager'},
+  {id:'oo_shanu',   label:'Shanu Halankar',    icon:'◉', color:C.oneonone, pin:'SH', role:''},
 ];
 
 const META = {
@@ -51,6 +52,7 @@ const META = {
   oo_jason:   {color:C.oneonone, freq:'Weekly / Bi-weekly', dur:'30–45 min', att:'Jason English (CEO) · John Maddern',                  title:'1-on-1 · Jason English'},
   oo_joe:     {color:C.oneonone, freq:'Weekly / Bi-weekly', dur:'30–45 min', att:'Joe Prepok (PA Ops Manager) · John Maddern',             title:'1-on-1 · Joe Prepok'},
   oo_vincent: {color:C.oneonone, freq:'Weekly / Bi-weekly', dur:'30–45 min', att:'Vincent Nibbering (SS Ops Manager) · John Maddern',      title:'1-on-1 · Vincent Nibbering'},
+  oo_shanu:   {color:C.oneonone, freq:'Weekly / Bi-weekly', dur:'30–45 min', att:'Shanu Halankar · John Maddern',                          title:'1-on-1 · Shanu Halankar'},
 };
 
 const AGENDAS = {
@@ -187,6 +189,13 @@ const AGENDAS = {
     {title:'Development & Growth',   time:'10 min', items:['Career goals and skills development','Two-way feedback']},
     {title:'Upcoming Focus',         time:'5 min',  items:['Top 3 priorities for next week','Upcoming decisions or concerns']},
   ],
+  oo_shanu:[
+    {title:'Check-In',               time:'5 min',  items:['What is your life score?']},
+    {title:'Progress on Priorities', time:'10 min', items:["What got done last week?","What didn't — and why?"]},
+    {title:'Blockers & Support',     time:'10 min', items:["What's in the way?",'How can the manager help?']},
+    {title:'Development & Growth',   time:'10 min', items:['Career goals and skills development','Two-way feedback']},
+    {title:'Upcoming Focus',         time:'5 min',  items:['Top 3 priorities for next week','Upcoming decisions or concerns']},
+  ],
 };
 
 const DEFAULT_KPIS = {
@@ -221,6 +230,7 @@ const FRAMEWORK_MAP = [
   {id:'oo_jason',   level:3, purpose:'EXECUTION', desc:'1-on-1 with Jason English — CEO'},
   {id:'oo_joe',     level:3, purpose:'EXECUTION', desc:'1-on-1 with Joe Prepok — PA Operations Manager'},
   {id:'oo_vincent', level:3, purpose:'EXECUTION', desc:'1-on-1 with Vincent Nibbering — SS Operations Manager'},
+  {id:'oo_shanu',   level:3, purpose:'EXECUTION', desc:'1-on-1 with Shanu Halankar'},
 ];
 
 const RAG_COLORS = {R:C.red, A:C.amber, G:C.green};
@@ -584,7 +594,8 @@ function renderAgenda(mid){
     const prioritiesInline=open && mid.startsWith('oo_') ? (
       item.title==='Progress on Priorities' ? `<div style="margin-top:14px;">${renderPriorities(mid,'priorities','Priorities')}</div>` :
       item.title==='Blockers & Support'      ? `<div style="margin-top:14px;">${renderPriorities(mid,'blockers','Blockers & Support')}</div>` :
-      item.title==='Development & Growth'    ? `<div style="margin-top:14px;">${renderPriorities(mid,'growth','Development & Growth')}</div>` : ''
+      item.title==='Development & Growth'    ? `<div style="margin-top:14px;">${renderPriorities(mid,'growth','Development & Growth')}</div>` :
+      item.title==='Upcoming Focus'          ? `<div style="margin-top:14px;">${renderPriorities(mid,'focus','Upcoming Focus')}</div>` : ''
     ) : '';
     return `<div style="display:flex;gap:12px;padding:10px 0;border-bottom:${i<agenda.length-1?`1px solid ${C.border}`:'none'};">
       <div style="min-width:52px;font-size:10px;color:${color};font-weight:bold;padding-top:2px;">${item.time}</div>
