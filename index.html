@@ -341,6 +341,36 @@ let formData   = {title:'', owner:'', dueDate:''};
 let activeResultsDept = 'QHSE';
 let kpiActuals = {};
 let kpiPeriod  = new Date().toISOString().slice(0,7);
+let addingSub  = false;
+let subForm    = {manager:'oo_joe', name:'', role:'', pin:''};
+
+// ── Subordinate 1-on-1s (added by managers under the Departmental tab) ──
+const ONE_ON_ONE_AGENDA = [
+  {title:'Check-In',               time:'5 min',  items:['What is your life score?']},
+  {title:'Progress on Priorities', time:'10 min', items:["What got done last week?","What didn't — and why?"]},
+  {title:'Blockers & Support',     time:'10 min', items:["What's in the way?",'How can the manager help?']},
+  {title:'Development & Growth',   time:'10 min', items:['Career goals and skills development','Two-way feedback']},
+  {title:'Upcoming Focus',         time:'5 min',  items:['Top 3 priorities for next week','Upcoming decisions or concerns']},
+];
+// Managers who may own subordinate 1-on-1s
+const MANAGER_IDS = ['oo_jason','oo_joe','oo_vincent','oo_shanu'];
+let subordinates = [];
+try { const s=localStorage.getItem('al_mf_subordinates'); if(s) subordinates=JSON.parse(s)||[]; } catch(e){ subordinates=[]; }
+
+function managerName(mgrId){const t=TABS.find(x=>x.id===mgrId);return t?t.label:mgrId;}
+
+// Wire a subordinate into TABS / META / AGENDAS so it renders as a full 1-on-1 tab.
+function registerSubordinate(s){
+  let t=TABS.find(x=>x.id===s.id);
+  if(!t){ t={id:s.id, icon:'◦', color:C.oneonone, sub:true}; TABS.push(t); }
+  t.label=s.name; t.role=s.role||''; t.manager=s.manager; t.sub=true;
+  if(s.pin) t.pin=s.pin; else delete t.pin;
+  META[s.id]={color:C.oneonone, freq:'Weekly / Bi-weekly', dur:'30–45 min',
+    att:`${s.name}${s.role?` (${s.role})`:''} · ${managerName(s.manager)}`,
+    title:`1-on-1 · ${s.name}`};
+  if(!AGENDAS[s.id]) AGENDAS[s.id]=JSON.parse(JSON.stringify(ONE_ON_ONE_AGENDA));
+}
+subordinates.forEach(registerSubordinate);
 
 try { const s=localStorage.getItem('al_mf_actions');if(s){actions=JSON.parse(s);if(actions.oneonone&&!actions.oo_jason){actions.oo_jason=actions.oneonone;delete actions.oneonone;}}} catch(e){}
 try { const s=localStorage.getItem('al_mf_priorities');if(s){priorities=JSON.parse(s);['priorities','blockers','growth'].forEach(sid=>{const ok=`oneonone|${sid}`,nk=`oo_jason|${sid}`;if(priorities[ok]&&!priorities[nk]){priorities[nk]=priorities[ok];delete priorities[ok];}});}} catch(e){}
@@ -461,6 +491,7 @@ function save() {
   try{localStorage.setItem('al_mf_actuals',JSON.stringify({period:kpiPeriod,data:kpiActuals}));}catch(e){}
   try{localStorage.setItem('al_mf_priorities',JSON.stringify(priorities));}catch(e){}
   try{localStorage.setItem('al_mf_okr',JSON.stringify(okrData));}catch(e){}
+  try{localStorage.setItem('al_mf_subordinates',JSON.stringify(subordinates));}catch(e){}
 }
 
 const today=new Date(); today.setHours(0,0,0,0);
@@ -478,19 +509,26 @@ function renderSidebar(){
     <div style="margin-top:8px;font-size:8px;color:rgba(255,255,255,0.65);font-style:italic;letter-spacing:0.5px;">Whatever it takes.</div>
   </div>`;
   let ooHeaderShown=false;
-  TABS.forEach(t=>{
+  const tabButton=(t,depth)=>{
     const st=t.id!=='framework'?getStats(t.id):{overdue:0,open:0};
     const active=currentTab===t.id;
     const locked=t.pin&&!unlockedTabs[t.id];
+    const lockIcon=locked?`<span style="font-size:10px;opacity:0.5;">&#128274;</span>`:'';
+    const badge=locked?'':st.overdue>0?`<span style="font-size:9px;background:${C.red};color:#fff;border-radius:8px;padding:1px 6px;font-weight:bold;">${st.overdue}</span>`:st.open>0?`<span style="font-size:9px;background:${C.primary}40;color:${C.lightest};border-radius:8px;padding:1px 6px;">${st.open}</span>`:'';
+    const pad=16+depth*16;
+    const size=depth>0?'10.5px':'11.5px';
+    const roleLabel=t.role?`<div style="font-size:8.5px;color:${C.muted};padding-left:20px;margin-top:1px;">${t.role}</div>`:'';
+    return `<button onclick="switchTab('${t.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:${depth>0?'6px':'9px'} 16px 6px ${pad}px;cursor:pointer;font-size:${size};background:${active?C.primary+'18':'transparent'};border-left:3px solid ${active?t.color:'transparent'};border-top:none;border-right:none;border-bottom:none;color:${active?C.primary:C.subText};width:100%;text-align:left;transition:background 0.15s;">
+      <span style="display:flex;flex-direction:column;"><span style="display:flex;align-items:center;gap:8px;"><span style="opacity:${active?1:0.5};">${t.icon}</span>${t.label}</span>${roleLabel}</span><span style="display:flex;align-items:center;gap:4px;">${lockIcon}${badge}</span></button>`;
+  };
+  TABS.forEach(t=>{
+    if(t.sub) return; // subordinates are rendered indented under their manager
     if(t.id.startsWith('oo_')&&!ooHeaderShown){
       ooHeaderShown=true;
       html+=`<div style="padding:8px 16px 3px;font-size:8px;letter-spacing:2px;color:${C.muted};text-transform:uppercase;font-weight:bold;border-top:1px solid ${C.border};margin-top:4px;">1-on-1s</div>`;
     }
-    const lockIcon=locked?`<span style="font-size:10px;opacity:0.5;">&#128274;</span>`:'';
-    const badge=locked?'':st.overdue>0?`<span style="font-size:9px;background:${C.red};color:#fff;border-radius:8px;padding:1px 6px;font-weight:bold;">${st.overdue}</span>`:st.open>0?`<span style="font-size:9px;background:${C.primary}40;color:${C.lightest};border-radius:8px;padding:1px 6px;">${st.open}</span>`:'';
-    const roleLabel=t.role?`<div style="font-size:8.5px;color:${C.muted};padding-left:20px;margin-top:1px;">${t.role}</div>`:'';
-    html+=`<button onclick="switchTab('${t.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:9px 16px;cursor:pointer;font-size:11.5px;background:${active?C.primary+'18':'transparent'};border-left:3px solid ${active?t.color:'transparent'};border-top:none;border-right:none;border-bottom:none;color:${active?C.primary:C.subText};width:100%;text-align:left;transition:background 0.15s;">
-      <span style="display:flex;flex-direction:column;"><span style="display:flex;align-items:center;gap:8px;"><span style="opacity:${active?1:0.5};">${t.icon}</span>${t.label}</span>${roleLabel}</span><span style="display:flex;align-items:center;gap:4px;">${lockIcon}${badge}</span></button>`;
+    html+=tabButton(t,0);
+    TABS.filter(x=>x.sub&&x.manager===t.id).forEach(s=>{ html+=tabButton(s,1); });
   });
   const lastBackup=localStorage.getItem('al_mf_cloud_ts');
   const backupLabel=lastBackup?`<div style="font-size:8px;color:${C.muted};margin-top:2px;">Last: ${lastBackup}</div>`:'';
@@ -613,7 +651,83 @@ function renderMeeting(mid){
     <div style="display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap;">${badges}</div>
     ${mid==='management'?renderKpis():''}
     ${renderAgenda(mid)}
+    ${mid==='departmental'?renderSubManager():''}
     ${renderActions(mid)}`;
+}
+
+function renderSubManager(){
+  const color=C.departmental;
+  const mgrOptions=MANAGER_IDS.map(id=>`<option value="${id}"${subForm.manager===id?' selected':''}>${managerName(id)}</option>`).join('');
+  const addForm=addingSub?`<div style="background:${C.bg};border:1px solid ${color}70;border-radius:4px;padding:14px;margin-bottom:14px;">
+    <div style="display:grid;grid-template-columns:1.2fr 1.5fr 1.2fr 0.9fr;gap:8px;margin-bottom:10px;">
+      <select onchange="subForm.manager=this.value" style="background:${C.card};border:1px solid ${C.border};border-radius:3px;padding:7px 9px;color:${C.text};font-size:11px;outline:none;font-family:Arial;">${mgrOptions}</select>
+      <input id="subName" type="text" placeholder="Subordinate name *" value="${(subForm.name||'').replace(/"/g,'&quot;')}" oninput="subForm.name=this.value" style="background:${C.card};border:1px solid ${C.border};border-radius:3px;padding:7px 9px;color:${C.text};font-size:11px;outline:none;font-family:Arial;">
+      <input id="subRole" type="text" placeholder="Role / title" value="${(subForm.role||'').replace(/"/g,'&quot;')}" oninput="subForm.role=this.value" style="background:${C.card};border:1px solid ${C.border};border-radius:3px;padding:7px 9px;color:${C.text};font-size:11px;outline:none;font-family:Arial;">
+      <input id="subPin" type="text" placeholder="PIN (optional)" maxlength="10" value="${(subForm.pin||'').replace(/"/g,'&quot;')}" oninput="subForm.pin=this.value" style="background:${C.card};border:1px solid ${C.border};border-radius:3px;padding:7px 9px;color:${C.text};font-size:11px;outline:none;font-family:Arial;">
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button onclick="saveSubordinate()" style="padding:7px 16px;background:${C.green};color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:11px;font-weight:bold;font-family:Arial;">Save Subordinate</button>
+      <span style="font-size:10px;color:${C.muted};">Creates a 1-on-1 tab in the sidebar with the standard agenda, priorities &amp; action items. Leave PIN blank for open access.</span>
+    </div>
+  </div>`:'';
+
+  let listHtml='';
+  MANAGER_IDS.forEach(mid=>{
+    const subs=subordinates.filter(s=>s.manager===mid);
+    if(!subs.length) return;
+    listHtml+=`<div style="margin-top:12px;"><div style="font-size:10px;font-weight:bold;color:${C.subText};margin-bottom:6px;">${managerName(mid)}</div>`;
+    subs.forEach(s=>{
+      const st=getStats(s.id);
+      const badge=st.overdue>0?`<span style="font-size:9px;background:${C.red};color:#fff;border-radius:8px;padding:1px 7px;font-weight:bold;">${st.overdue} overdue</span>`:st.open>0?`<span style="font-size:9px;background:${C.primary}25;color:${C.light};border-radius:8px;padding:1px 7px;">${st.open} open</span>`:'';
+      const pinBadge=s.pin?`<span style="font-size:9px;color:${C.muted};">&#128274; PIN</span>`:'';
+      listHtml+=`<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:${C.card};border:1px solid ${C.border};border-left:3px solid ${C.oneonone};border-radius:4px;margin-bottom:6px;">
+        <div style="flex:1;min-width:0;">
+          <span style="font-size:12px;font-weight:bold;color:${C.text};">${s.name}</span>
+          ${s.role?`<span style="font-size:10px;color:${C.muted};margin-left:8px;">${s.role}</span>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">${pinBadge}${badge}
+          <button onclick="switchTab('${s.id}')" style="padding:4px 11px;background:${C.primary};color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:10px;font-family:Arial;font-weight:bold;">Open</button>
+          <button onclick="removeSubordinate('${s.id}')" style="padding:4px 9px;background:transparent;color:${C.muted};border:1px solid ${C.border};border-radius:3px;cursor:pointer;font-size:10px;font-family:Arial;" title="Remove subordinate">✕</button>
+        </div>
+      </div>`;
+    });
+    listHtml+='</div>';
+  });
+  const empty=subordinates.length===0?`<div style="text-align:center;padding:20px;color:${C.muted};font-size:11px;background:${C.card};border:1px dashed ${C.border};border-radius:4px;margin-top:12px;">No subordinates added yet. Managers can add their team members to run structured 1-on-1s.</div>`:'';
+
+  return `<div style="margin-top:24px;background:${C.card};border:1px solid ${C.border};border-left:3px solid ${color};border-radius:4px;padding:18px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:4px;">
+      <span style="font-size:9px;letter-spacing:2px;color:${color};font-weight:bold;text-transform:uppercase;">Team 1-on-1s · Subordinates</span>
+      <button onclick="toggleAddSub()" style="padding:7px 14px;background:${addingSub?C.muted:C.primary};color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:11px;font-weight:bold;font-family:Arial;">${addingSub?'✕ Cancel':'+ Add Subordinate'}</button>
+    </div>
+    <div style="font-size:11px;color:${C.subText};margin-bottom:14px;">Add a direct report for a manager — creates their own 1-on-1 tab in the same format as the leadership 1-on-1s.</div>
+    ${addForm}${listHtml}${empty}
+  </div>`;
+}
+
+function toggleAddSub(){addingSub=!addingSub;if(addingSub)subForm={manager:subForm.manager||'oo_joe',name:'',role:'',pin:''};renderMain();}
+
+function saveSubordinate(){
+  const name=(subForm.name||'').trim();
+  if(!name){const el=document.getElementById('subName');if(el)el.style.borderColor=C.red;return;}
+  const id='oo_sub_'+Date.now();
+  const s={id, name, role:(subForm.role||'').trim(), manager:subForm.manager||'oo_joe', pin:(subForm.pin||'').trim()};
+  subordinates.push(s);
+  registerSubordinate(s);
+  addingSub=false;subForm={manager:s.manager,name:'',role:'',pin:''};
+  save();render();
+}
+
+function removeSubordinate(id){
+  const s=subordinates.find(x=>x.id===id);
+  if(!s)return;
+  if(!confirm(`Remove ${s.name}? Their 1-on-1 tab, priorities and action items will be permanently deleted.`))return;
+  subordinates=subordinates.filter(x=>x.id!==id);
+  const ti=TABS.findIndex(t=>t.id===id);if(ti>-1)TABS.splice(ti,1);
+  delete META[id];delete AGENDAS[id];delete actions[id];delete unlockedTabs[id];
+  Object.keys(priorities).forEach(k=>{if(k.indexOf(id+'|')===0)delete priorities[k];});
+  if(currentTab===id)currentTab='departmental';
+  save();render();
 }
 
 function renderKpis(){
@@ -1084,7 +1198,7 @@ function backupToCloud(){
   if(!url){setCloudStatus('Please enter your Apps Script URL first.',true);return;}
   localStorage.setItem('al_mf_cloud_url',url);
   setCloudStatus('Saving…',false);
-  const payload={data:{actions,priorities,ragMap,kpiNames,kpiActuals,kpiPeriod},note:'Meeting Framework backup'};
+  const payload={data:{actions,priorities,ragMap,kpiNames,kpiActuals,kpiPeriod,subordinates},note:'Meeting Framework backup'};
   fetch(url,{method:'POST',mode:'no-cors',body:JSON.stringify(payload)})
     .then(()=>{
       const ts=new Date().toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
@@ -1112,6 +1226,7 @@ function restoreFromCloud(){
       if(d.kpiNames)   {kpiNames=d.kpiNames;   localStorage.setItem('al_mf_kpi',        JSON.stringify(kpiNames));}
       if(d.kpiActuals) {kpiActuals=d.kpiActuals;localStorage.setItem('al_mf_actuals',   JSON.stringify(kpiActuals));}
       if(d.kpiPeriod!==undefined){kpiPeriod=d.kpiPeriod;localStorage.setItem('al_mf_kpi_period',String(kpiPeriod));}
+      if(d.subordinates){subordinates=d.subordinates||[];localStorage.setItem('al_mf_subordinates',JSON.stringify(subordinates));subordinates.forEach(registerSubordinate);}
       if(res.savedAt)  {localStorage.setItem('al_mf_cloud_ts',res.savedAt);}
       setCloudStatus(`Restored from ${res.savedAt||'cloud'} ✓`,false);
       render();
